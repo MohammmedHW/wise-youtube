@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "310857185697",
+    "project_id": "wisetube-client",
+    "storage_bucket": "wisetube-client.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:310857185697:android:38175df99f7a0f38f573e0",
+        "android_client_info": {
+          "package_name": "com.wisetube"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "310857185697-7dm9jvg3lm54b0bgeh0s2502ivhjaumg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wisetube",
+            "certificate_hash": "25f148b3c883c60c2c4c3e5a1cd088ec15fa7d4f"
+          }
+        },
+        {
+          "client_id": "310857185697-f3m7q55lhk2eklp3jr7iojutrcuo96js.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3fYA9KVe7_94W3980ooPPZC5VXADk82U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "310857185697-f3m7q55lhk2eklp3jr7iojutrcuo96js.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

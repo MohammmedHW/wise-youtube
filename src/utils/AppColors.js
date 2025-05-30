@@ -1,0 +1,16 @@
+export default {
+  theme: '#9370db',
+  white: '#ffffff',
+  black: '#000000',
+  gray: '#808080',
+  lightGray: '#d3d3d3',
+  darkGray: '#a9a9a9',
+  red: '#ff0000',
+  green: '#008000',
+  blue: '#0000ff',
+  yellow: '#ffff00',
+  orange: '#ffa500',
+  purple: '#800080',
+  pink: '#ffc0cb',
+  backgroundGray: '#e5e5e5',
+};
