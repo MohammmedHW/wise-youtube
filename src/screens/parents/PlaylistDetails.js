@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Playlist} from '../../services';
@@ -47,12 +48,14 @@ export default function PlaylistDetails() {
   const {playlistId, source = 'custom'} = route.params;
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingVideo, setDeletingVideo] = useState(false);
   const [noVideosMessage, setNoVideosMessage] = useState('');
   const [currentVideoId, setCurrentVideoId] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const playlistStorageKey = `playlist_order_${playlistId}`;
   const playerRef = useRef(null);
-
+  const screenWidth = Dimensions.get('window').width;
+  const playerHeight = (screenWidth * 9) / 16; // 16:9 aspect ratio
   useEffect(() => {
     fetchPlaylistDetails();
   }, []);
@@ -86,6 +89,7 @@ export default function PlaylistDetails() {
           email_id: email,
           playlist_id: playlistId,
         });
+        console.log(response);
 
         if (response.status === 'success') {
           const videoDetailsPromises = response.videos.map(async video => {
@@ -215,28 +219,26 @@ export default function PlaylistDetails() {
         </View>
       </TouchableOpacity>
 
-      {/* Show delete button only if MyvideoId is present */}
-      {item.MyvideoId && (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={e => {
-            e.stopPropagation(); // Prevent drag event propagation
-            Alert.alert(
-              'Delete Video',
-              'Are you sure you want to delete this video?',
-              [
-                {text: 'No', onPress: () => {}, style: 'cancel'},
-                {
-                  text: 'Yes',
-                  onPress: () => deleteVideo(item.MyvideoId), // Use MyvideoId for deletion
-                },
-              ],
-              {cancelable: false},
-            );
-          }}>
-          <MaterialIcons name="delete" size={22} color="red" />
-        </TouchableOpacity>
-      )}
+      {/* Show delete button for all videos */}
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={e => {
+          e.stopPropagation(); // Prevent drag event propagation
+          Alert.alert(
+            'Delete Video',
+            'Are you sure you want to delete this video?',
+            [
+              {text: 'No', onPress: () => {}, style: 'cancel'},
+              {
+                text: 'Yes',
+                onPress: () => deleteVideo(item.MyvideoId || item.videoId),
+              },
+            ],
+            {cancelable: false},
+          );
+        }}>
+        <MaterialIcons name="delete" size={22} color="red" />
+      </TouchableOpacity>
 
       {/* Drag Handle */}
       <TouchableOpacity
@@ -248,8 +250,11 @@ export default function PlaylistDetails() {
     </View>
   );
 
-  const deleteVideo = async MyvideoId => {
+  const deleteVideo = async videoId => {
     try {
+      setDeletingVideo(true);
+      console.log(videoId);
+      console.log(playlistId);
       const response = await fetch(
         'http://timesride.com/custom/DeletePlayListAndVideo.php',
         {
@@ -258,7 +263,8 @@ export default function PlaylistDetails() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            video_id: MyvideoId.toString(),
+            video_id: videoId.toString(),
+            playlist_id: playlistId,
           }),
         },
       );
@@ -274,6 +280,8 @@ export default function PlaylistDetails() {
     } catch (error) {
       console.error('Error deleting video:', error);
       Alert.alert('Error', 'An error occurred while deleting the video.');
+    } finally {
+      setDeletingVideo(false);
     }
   };
 
@@ -293,7 +301,7 @@ export default function PlaylistDetails() {
           <View style={{flex: 1}}>
             {isPlaying && currentVideoId && (
               <YoutubePlayer
-                height={220}
+                height={playerHeight}
                 play={isPlaying}
                 videoId={currentVideoId}
                 onChangeState={event => {
@@ -305,7 +313,7 @@ export default function PlaylistDetails() {
                 webViewStyle={styles.webViewStyle}
               />
             )}
-            <View style={{padding: 8, flex: 1}}>
+            <View style={{padding: 8, flex: 1,marginTop:20}}>
               <DraggableFlatList
                 data={videos}
                 onDragEnd={({data}) => {
@@ -321,6 +329,12 @@ export default function PlaylistDetails() {
                 renderItem={renderItem}
               />
             </View>
+          </View>
+        )}
+        {deletingVideo && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={AppColors.theme} />
+            <Text style={styles.loadingText}>Deleting video...</Text>
           </View>
         )}
       </View>
@@ -387,7 +401,7 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.Medium,
   },
   webViewStyle: {
-    marginBottom: 16,
+    // paddingBottom: 20,
   },
   dragHandle: {
     justifyContent: 'center',
@@ -397,5 +411,22 @@ const styles = StyleSheet.create({
   deleteButton: {
     marginLeft: 10,
     paddingLeft: 10,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: AppColors.theme,
+    fontFamily: AppFonts.Medium,
   },
 });

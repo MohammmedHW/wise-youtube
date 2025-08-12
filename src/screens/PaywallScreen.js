@@ -67,6 +67,34 @@ const PaywallScreen = ({ onSubscriptionComplete }) => {
     }
   };
 
+  const handleBackFunction = async () => {
+    try {
+      const userEmail = await AsyncStorage.getItem('userUserName');
+      const detailsSubscription = await SubscriptionService.getSubscription(userEmail);
+      let remainingDays = 0;
+
+      if (detailsSubscription.status === 'success' && detailsSubscription.data.length > 0) {
+        const currentSub = detailsSubscription.data[0];
+        if (currentSub.status === 'active') {
+          const now = new Date();
+          const expiryDate = new Date(currentSub.expiry_date);
+          remainingDays = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+          remainingDays = Math.max(0, remainingDays);
+        }
+      }
+
+      if (remainingDays > 0) {
+        navigation.navigate('HomeScreen');
+      } else {
+        onSubscriptionComplete(false); // This will trigger navigation to TrialScreen
+        console.log("remainingDays",remainingDays);
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      onSubscriptionComplete(false); // Navigate to TrialScreen on error
+    }
+  };
+
   const handlePurchase = async (product) => {
     try {
       setPurchasing(true);
@@ -96,23 +124,37 @@ const PaywallScreen = ({ onSubscriptionComplete }) => {
 
       console.log('PaywallScreen: Purchase completed:', purchase);
 
-      // Calculate expiry date based on product ID
+      // Get current subscription details to check for remaining days
+      const currentSubscription = await SubscriptionService.getSubscription(userEmail);
+      let remainingDays = 0;
+
+      if (currentSubscription?.status === 'success' && currentSubscription?.data?.length > 0) {
+        const currentSub = currentSubscription.data[0];
+        if (currentSub.status === 'active') {
+          const now = new Date();
+          const expiryDate = new Date(currentSub.expiry_date);
+          remainingDays = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+          remainingDays = Math.max(0, remainingDays); // Ensure we don't have negative days
+        }
+      }
+
+      // Calculate expiry date based on product ID and add remaining days
       const purchaseDate = new Date();
       let expiryDate = new Date(purchaseDate);
 
       switch (product.productId) {
         case 'monthly_plan':
-          expiryDate.setDate(purchaseDate.getDate() + 30);
+          expiryDate.setDate(purchaseDate.getDate() + 30 + remainingDays);
           break;
         case 'quarterly_plan':
-          expiryDate.setDate(purchaseDate.getDate() + 90);
+          expiryDate.setDate(purchaseDate.getDate() + 90 + remainingDays);
           break;
         case 'yearly_plan':
-          expiryDate.setDate(purchaseDate.getDate() + 365);
+          expiryDate.setDate(purchaseDate.getDate() + 365 + remainingDays);
           break;
         default:
           // Default to 30 days or handle unexpected product ID
-          expiryDate.setDate(purchaseDate.getDate() + 30);
+          expiryDate.setDate(purchaseDate.getDate() + 30 + remainingDays);
           console.warn('PaywallScreen: Unexpected product ID, defaulting to 30 days expiry:', product.productId);
           break;
       }
@@ -122,34 +164,44 @@ const PaywallScreen = ({ onSubscriptionComplete }) => {
       const purchaseDateFormatted = formatISODate(purchaseDate);
       const expiryDateFormatted = formatISODate(expiryDate);
 
+      console.log("order id",purchase[0].transactionReceipt.orderId);
+      console.log("transaction Receipt", purchase[0].transactionReceipt);
+      console.log("Remaining days added:", remainingDays);
+
       // Verify purchase with backend
       const subscriptionData = {
-        action:"UpdatePlane",
-        email: userEmail,
-        product_id: product.productId,
-        purchase_token: purchase.transactionReceipt,
-        order_id: purchase.transactionId,
-        platform: 'android', // Note: This should ideally be Platform.OS for both Android/iOS
+        action: "UpdatePlane", email: userEmail, product_id: product.productId,
+        purchase_token: purchase[0].purchaseToken,
+        order_id: String(JSON.parse(purchase[0].dataAndroid).orderId),
+        platform: 'android',
         price: product.subscriptionOfferDetails?.[0]?.pricingPhases?.pricingPhaseList?.[0]?.formattedPrice || product.price,
-        purchase_date: purchaseDateFormatted,
-        expiry_date: expiryDateFormatted,
-        is_trial: 1,
-        status: 'active'
-      };
+        purchase_date: purchaseDateFormatted, expiry_date: expiryDateFormatted,
+        is_trial: 1, status: 'active'};
 
       console.log('PaywallScreen: Verifying subscription with backend:', subscriptionData);
       const response = await SubscriptionService.addSubscription(subscriptionData);
-      
+      console.log("response",response);
       if (response.status === 'success') {
         console.log('PaywallScreen: Subscription verified successfully');
         // Finish the transaction
-        await RNIap.finishTransaction(purchase);
-        // Check if onSubscriptionComplete is a function before calling it
-        if (typeof onSubscriptionComplete === 'function') {
-          onSubscriptionComplete(true);
-        } else {
-          console.error('onSubscriptionComplete prop is not a function');
-        }
+        console.log("before RNIap.finishTransaction(purchase)");
+        await RNIap.finishTransaction({
+          purchase: purchase[0],
+          isConsumable: false
+        });
+        console.log("after RNIap.finishTransaction(purchase)");
+        
+        // Calculate remaining days properly
+        const purchaseDate = new Date(purchaseDateFormatted);
+        const expiryDate = new Date(expiryDateFormatted);
+        const newRemainingDays = Math.ceil((expiryDate - purchaseDate) / (1000 * 60 * 60 * 24));
+        console.log("New remaining days:", newRemainingDays);
+        
+        // Store remaining days in AsyncStorage
+        await AsyncStorage.setItem('daysRemaining', JSON.stringify(newRemainingDays));
+        
+        // Navigate back to parent home screen after successful subscription
+        navigation.navigate('HomeScreen');
       } else {
         throw new Error('Failed to verify subscription with backend');
       }
@@ -204,6 +256,7 @@ const PaywallScreen = ({ onSubscriptionComplete }) => {
               </Text>
             </TouchableOpacity>
           </View>
+          
         ))
       ) : (
         <View style={styles.noProductsContainer}>
@@ -213,6 +266,10 @@ const PaywallScreen = ({ onSubscriptionComplete }) => {
           </Text>
         </View>
       )}
+
+      <TouchableOpacity style={styles.backHeader} onPress={() => handleBackFunction()}>
+        <Text style={styles.backTitle}>Go Back</Text>
+      </TouchableOpacity>
 
       {/* <TouchableOpacity
         style={styles.bottomBackButton}
@@ -324,6 +381,20 @@ const styles = StyleSheet.create({
   bottomBackButtonText: {
     fontSize: 16,
     color: '#000',
+    fontWeight: 'bold',
+  },
+  backHeader: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'gray',
+    alignItems: 'center',
+  },
+  backTitle: {
+    fontSize: 16,
+    color: 'gray',
     fontWeight: 'bold',
   },
 });

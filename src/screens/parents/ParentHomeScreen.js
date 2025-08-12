@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useContext} from 'react';
 import {
   View,
   FlatList,
@@ -23,6 +23,8 @@ import {Playlist, YoutubeApi} from '../../services';
 import AppLoader from '../../components/AppLoader';
 import AppColors from '../../utils/AppColors';
 import AppFonts from '../../utils/AppFonts';
+import { Linking } from 'react-native';
+
 import {config} from '../../../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -35,10 +37,15 @@ import DropdownAlert, {
   DropdownAlertData,
   DropdownAlertType,
 } from 'react-native-dropdownalert';
+import {AppContext} from '../../contextApi/AppContext';
+// import { AppContext } from './AppContext';
 
 function HomeScreen() {
   const navigation = useNavigation();
   const [videos, setVideos] = useState([]);
+  const {checkTrialFirstTime, setCheckTrialFirstTime} = useContext(AppContext);
+  console.log('TCL: checkTrialFirstTime', checkTrialFirstTime);
+
   const [searchText, setSearchText] = useState('');
   const [nextPageToken, setNextPageToken] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -59,40 +66,57 @@ function HomeScreen() {
 
   const [playlists, setPlaylists] = useState([]);
   const [selectedVideoId, setSelectedVideoId] = useState(null);
-  const [count,setCount]=useState(0);
 
   const API_KEY = config.cli.api_key;
   let alert = _data => new Promise(res => res);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const checkLock = async () => {
-        const homeLocked = await AsyncStorage.getItem('homeLocked');
-        setIsLocked(homeLocked === 'true');
+  const checkLock = async () => {
+    const isLocked = await AsyncStorage.getItem('homeLocked');
+    setIsLocked(isLocked === 'true');
+  };
+  useEffect(() => {
+    const isFocused = navigation.addListener('focus', () => {
+      checkLock()
+    });
+    return isFocused;
+  }, [navigation]);
 
-        // Check expiry date
-        const expiryDate = await AsyncStorage.getItem('expirydata');
-        if (expiryDate && count===0) {
-          console.log(expiryDate);
-          if (expiryDate <= 2) {
-            Alert.alert(
-              'Subscription Expiring Soon',
-              `Your subscription will expire in ${expiryDate} day${expiryDate === 1 ? '' : 's'}. Please renew your subscription to continue using the app.`,
-              [
-                {
-                  text: 'Ok',
-                  style: 'cancel',
-                  onPress: () => setCount(1)
-                },
-              ]
-            );
-          }
-        }
-      };
+  useEffect(() => {
+    if (checkTrialFirstTime) {
+      alert({
+        type: DropdownAlertType.Success,
+        title: 'Congratulations',
+        message: `You have unlocked free trial period of 3 days.`,
+      });
+      setCheckTrialFirstTime(null)
+    }
+  }, [checkTrialFirstTime]);
 
-      checkLock();
-    }, []),
-  );
+  // useFocusEffect(
+  //   React.useCallback(() => {
+  //     const checkLock = async () => {
+
+  // Check expiry date
+  // if (expiryDate) {
+  //   console.log(expiryDate);
+  //   if (expiryDate <= 2) {
+  //     Alert.alert(
+  //       'Enjoyment Expiring Soon',
+  //       `Your  won't enjoy services after ${expiryDate} day${expiryDate === 1 ? '' : 's'}. Please renew your subscription to continue using the app.`,
+  //       [
+  //         {
+  //           text: 'Ok',
+  //           style: 'cancel'
+  //         },
+  //       ]
+  //     );
+  //   }
+  // }
+  //     };
+
+  //     checkLock();
+  //   }, []),
+  // );
 
   const unlockHome = async () => {
     const storedPin = await AsyncStorage.getItem('userPin');
@@ -199,6 +223,7 @@ function HomeScreen() {
       const action = subscribedChannels.includes(channelId)
         ? 'unsubscribe'
         : 'subscribe';
+      console.log('TCL: action', action);
 
       const requestData = {
         action: action,
@@ -217,11 +242,14 @@ function HomeScreen() {
         },
       );
 
+      console.log('TCL: response responseresponseresponseresponse', response);
+
       if (!response.ok) {
         throw new Error(`Failed to ${action} the channel`);
       }
 
       const data = await response.json();
+      console.log('TCL: data responseresponseresponse', data);
 
       if (data.status === 'success') {
         const updatedSubscribedChannels = [...subscribedChannels];
@@ -324,6 +352,8 @@ function HomeScreen() {
     keywordOverride = '',
     categoryOverride = '',
   ) => {
+    // navigation.navigate('Add Video', {videoId: 'dQw4w9WgXcQ'|| item.id.videoId})
+    // return
     let keyword = '';
 
     if (keywordOverride) {
@@ -345,10 +375,16 @@ function HomeScreen() {
     if (!isLoadMore && !refreshing) setIsLoading(true);
 
     try {
+      console.log('Using API Key:', API_KEY); // Log the API key being used
       const response = await YoutubeApi.getVideosBySearch(
         keyword,
         isLoadMore ? nextPageToken : '',
         filterType,
+      );
+
+      console.log(
+        'TCL: response responseresponseresponseresponseresponse',
+        JSON.stringify(response),
       );
 
       setNextPageToken(response.nextPageToken || null);
@@ -360,10 +396,23 @@ function HomeScreen() {
       }
     } catch (error) {
       console.log('Error fetching videos:', error);
-      Alert.alert(
-        'Error',
-        'We are unable to load videos right now. Please try again later.',
-      );
+      console.log('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+
+      if (error.response?.status === 403) {
+        Alert.alert(
+          'API Access Error',
+          'The YouTube API access is currently restricted. Please check:\n\n1. API key configuration\n2. API quota limits\n3. API restrictions',
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          'We are unable to load videos right now. Please try again later.',
+        );
+      }
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -386,33 +435,84 @@ function HomeScreen() {
   };
 
   const handleAddToPlaylist = async playlistId => {
-    const email = await AsyncStorage.getItem('userUserName');
-    const isYouTubePlaylist =
-      selectedVideoId?.startsWith('PL') || selectedVideoId?.includes('list=');
-
-    const video_link = isYouTubePlaylist
-      ? `https://www.youtube.com/playlist?list=${selectedVideoId.replace(
-          'https://www.youtube.com/playlist?list=',
-          '',
-        )}`
-      : `https://www.youtube.com/watch?v=${selectedVideoId}`;
-
-    const data = {
-      email_id: email,
-      video_link,
-      playlist_id: String(playlistId),
-    };
-
+    console.log('ParentHomeScreen.js');
+    console.log(selectedVideoId);
     try {
-      const resp = await Playlist.addToPlaylist(data);
-      if (resp.status === 'success') {
-        await playlistSheetRef.current.close();
-        Alert.alert('Success', resp.message);
+      const email = await AsyncStorage.getItem('userUserName');
+      const isYouTubePlaylist =
+        selectedVideoId?.startsWith('PL') || selectedVideoId?.includes('list=');
+      console.log('before the playlist if condition check');
+      console.log(selectedVideoId);
+      if (isYouTubePlaylist) {
+        // Extract playlist ID from the URL
+        const youtubePlaylistId = selectedVideoId.includes('list=')
+          ? selectedVideoId.split('list=')[1].split('&')[0]
+          : selectedVideoId;
+
+        // First, fetch all videos from the YouTube playlist
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${youtubePlaylistId}&key=${API_KEY}`,
+        );
+        console.log('playlist Id', youtubePlaylistId);
+        console.log('response', response);
+        const data = await response.json();
+        console.log('data', data);
+
+        if (data.items && data.items.length > 0) {
+          // Show loading message
+          Alert.alert(
+            'Adding Videos',
+            'Please wait while we add all videos...',
+          );
+
+          // Add each video individually
+          const addPromises = data.items.map(async item => {
+            const videoId = item.snippet.resourceId.videoId;
+            const video_link = `https://www.youtube.com/watch?v=${videoId}`;
+
+            const addData = {
+              email_id: email,
+              video_link,
+              playlist_id: String(playlistId),
+            };
+
+            return Playlist.addToPlaylist(addData);
+          });
+
+          // Wait for all videos to be added
+          const results = await Promise.all(addPromises);
+          const successCount = results.filter(
+            r => r.status === 'success',
+          ).length;
+
+          await playlistSheetRef.current.close();
+          Alert.alert(
+            'Success',
+            `Added ${successCount} out of ${data.items.length} videos to your playlist`,
+          );
+        } else {
+          Alert.alert('Error', 'No videos found in the playlist');
+        }
       } else {
-        Alert.alert('Error', 'Failed to add video to playlist');
+        // Handle single video
+        const video_link = `https://www.youtube.com/watch?v=${selectedVideoId}`;
+        const data = {
+          email_id: email,
+          video_link,
+          playlist_id: String(playlistId),
+        };
+
+        const resp = await Playlist.addToPlaylist(data);
+        if (resp.status === 'success') {
+          await playlistSheetRef.current.close();
+          Alert.alert('Success', resp.message);
+        } else {
+          Alert.alert('Error', 'Failed to add video to playlist');
+        }
       }
     } catch (err) {
       console.error('Error adding to playlist:', err);
+      Alert.alert('Error', 'Failed to add videos to playlist');
     }
   };
 
@@ -454,6 +554,7 @@ function HomeScreen() {
 
   const renderItem = ({item}) => {
     const isChannel = item?.id?.channelId;
+    console.log('TCL: renderItem -> isChannel', isChannel);
     const isVideo = item?.id?.videoId;
     const isPlaylist = item?.id?.playlistId;
     const isSubscribed = subscribedChannels.includes(item.id.channelId);
@@ -673,6 +774,7 @@ function HomeScreen() {
             <TouchableOpacity
               onPress={() => {
                 setSelectedVideoId(item.id.playlistId);
+                console.log(item.id.playlistId);
                 sheetRef.current.open();
               }}>
               <MaterialIcons name="more-vert" size={22} color="#444" />

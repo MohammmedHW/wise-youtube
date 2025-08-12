@@ -33,10 +33,22 @@ const API_URL = 'http://timesride.com/custom/subscriptondb.php';
 class SubscriptionService {
     static async addSubscription(subscriptionData) {
         try {
+            console.log("SubscriptionService: Sending subscription data:", JSON.stringify(subscriptionData, null, 2));
             const response = await axios.post(API_URL, subscriptionData);
+            console.log("SubscriptionService: Raw response:", response);
+            console.log("SubscriptionService: Response data:", response.data);
+            
+            if (!response.data) {
+                throw new Error('No data received from server');
+            }
+            
             return response.data;
         } catch (error) {
-            console.error('Error adding subscription:', error);
+            console.error('SubscriptionService: Error adding subscription:', error.response?.data || error.message);
+            if (error.response) {
+                console.error('SubscriptionService: Response status:', error.response.status);
+                console.error('SubscriptionService: Response headers:', error.response.headers);
+            }
             throw error;
         }
     }

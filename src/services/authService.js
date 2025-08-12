@@ -61,4 +61,19 @@ const verifyOtp = body =>
       .then(response => resolve(response))
       .catch(error => reject(error));
   });
-export {login, userLogin, register, generateOtp, verifyOtp};
+
+  const getUserByEmail = email =>
+    new Promise((resolve, reject) => {
+      axios
+        .get('http://timesride.com/custom/LoginpageAPI.php', {
+          params: { email }, // gets converted to ?email=value
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        .then(response => resolve(response))
+        .catch(error => reject(error));
+    });
+
+
+export {login, userLogin, register, generateOtp, verifyOtp ,getUserByEmail};

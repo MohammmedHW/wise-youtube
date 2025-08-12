@@ -12,6 +12,8 @@ import {
   ActivityIndicator,
   TouchableHighlight,
 } from 'react-native';
+import {Dimensions} from 'react-native';
+
 import {useNavigation} from '@react-navigation/native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import {Playlist, Video} from '../../services';
@@ -28,7 +30,8 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // top of f
 
 function ParentVideoDetailScreen({route}) {
   const navigation = useNavigation();
-  const {videoId} = route.params;
+  const {videoId, comingFrom} = route.params;
+  console.log('TCL: ParentVideoDetailScreen -> comingFrom', comingFrom);
   const [videoDetails, setVideoDetails] = useState(null);
   const [relatedVideos, setRelatedVideos] = useState([]);
   const [isFocus, setIsFocus] = useState(false);
@@ -44,6 +47,8 @@ function ParentVideoDetailScreen({route}) {
   const sheetRef = useRef(null); // Reference for the options bottom sheet
   const playlistSheetRef = useRef(null); // Reference for the playlist bottom sheet
 
+  const screenWidth = Dimensions.get('window').width;
+  const playerHeight = (screenWidth * 9) / 16; // 16:9 aspect ratio
   useEffect(() => {
     getVideoDetails(videoId);
     setRelatedNextPage(null);
@@ -58,7 +63,8 @@ function ParentVideoDetailScreen({route}) {
         `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`,
       );
       const result = await res.json();
-      setVideoDetails(result.items[0]);
+			console.log("TCL: ParentVideoDetailScreen -> result", result)
+      setVideoDetails(result?.items[0]);
     } catch (err) {
       console.error(err);
     } finally {
@@ -86,37 +92,88 @@ function ParentVideoDetailScreen({route}) {
   };
 
   const handleAddToPlaylist = async playlistId => {
-    const email = await AsyncStorage.getItem('userUserName');
-    const isYouTubePlaylist =
-      selectedVideoId?.startsWith('PL') || selectedVideoId?.includes('list=');
-
-    const video_link = isYouTubePlaylist
-      ? `https://www.youtube.com/playlist?list=${selectedVideoId.replace(
-          'https://www.youtube.com/playlist?list=',
-          '',
-        )}`
-      : `https://www.youtube.com/watch?v=${selectedVideoId}`;
-
-    const data = {
-      email_id: email,
-      video_link,
-      playlist_id: String(playlistId),
-    };
-
+    console.log('ParentVideoDetailScreen.js');
     try {
-      const resp = await Playlist.addToPlaylist(data);
-      if (resp.status === 'success') {
-        await playlistSheetRef.current.close();
-        Alert.alert('Success', resp.message);
+      const email = await AsyncStorage.getItem('userUserName');
+      const isYouTubePlaylist =
+        selectedVideoId?.startsWith('PL') || selectedVideoId?.includes('list=');
+      console.log('before the playlist if condition check');
+      console.log(selectedVideoId);
+      if (isYouTubePlaylist) {
+        // Extract playlist ID from the URL
+        const youtubePlaylistId = selectedVideoId.includes('list=')
+          ? selectedVideoId.split('list=')[1].split('&')[0]
+          : selectedVideoId;
+
+        // First, fetch all videos from the YouTube playlist
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${youtubePlaylistId}&key=${API_KEY}`,
+        );
+        console.log('playlist Id', youtubePlaylistId);
+        console.log('response', response);
+        const data = await response.json();
+        console.log('data', data);
+
+        if (data.items && data.items.length > 0) {
+          // Show loading message
+          Alert.alert(
+            'Adding Videos',
+            'Please wait while we add all videos...',
+          );
+
+          // Add each video individually
+          const addPromises = data.items.map(async item => {
+            const videoId = item.snippet.resourceId.videoId;
+            const video_link = `https://www.youtube.com/watch?v=${videoId}`;
+
+            const addData = {
+              email_id: email,
+              video_link,
+              playlist_id: String(playlistId),
+            };
+
+            return Playlist.addToPlaylist(addData);
+          });
+
+          // Wait for all videos to be added
+          const results = await Promise.all(addPromises);
+          const successCount = results.filter(
+            r => r.status === 'success',
+          ).length;
+
+          await playlistSheetRef.current.close();
+          Alert.alert(
+            'Success',
+            `Added ${successCount} out of ${data.items.length} videos to your playlist`,
+          );
+        } else {
+          Alert.alert('Error', 'No videos found in the playlist');
+        }
       } else {
-        Alert.alert('Error', 'Failed to add video to playlist');
+        // Handle single video
+        const video_link = `https://www.youtube.com/watch?v=${selectedVideoId}`;
+        const data = {
+          email_id: email,
+          video_link,
+          playlist_id: String(playlistId),
+        };
+
+        const resp = await Playlist.addToPlaylist(data);
+        if (resp.status === 'success') {
+          await playlistSheetRef.current.close();
+          Alert.alert('Success', resp.message);
+        } else {
+          Alert.alert('Error', 'Failed to add video to playlist');
+        }
       }
     } catch (err) {
       console.error('Error adding to playlist:', err);
+      Alert.alert('Error', 'Failed to add videos to playlist');
     }
   };
 
   const getRelatedVideos = async (videoId, isLoadMore = false) => {
+    console.log('TCL: getRelatedVideos -> videoId', videoId);
     try {
       if (isLoadMore) setLoadingMoreRelated(true);
       else setIsLoading(true);
@@ -125,22 +182,45 @@ function ParentVideoDetailScreen({route}) {
         `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`,
       );
       const detailsData = await detailsRes.json();
+      console.log(
+        'TCL: getRelatedVideos -> detailsData',
+        JSON.stringify(detailsData),
+      );
 
-      const categoryId = detailsData.items[0].snippet.categoryId;
-      const videoTitle = detailsData.items[0].snippet.title;
+      let searchUrl = '';
+      console.log('TCL: getRelatedVideos -> comingFrom', comingFrom);
 
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=${categoryId}&maxResults=10&regionCode=${regionCode}&q=${videoTitle
-        .split(' ')
-        .slice(0, 3)
-        .join(' ')}&key=${API_KEY}${
-        isLoadMore && relatedNextPage ? `&pageToken=${relatedNextPage}` : ''
-      }`;
+      if (comingFrom == 'channel') {
+        const channelId = detailsData.items[0].snippet.channelId;
+
+        // Step 2: Fetch videos from that channel
+        searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=10&order=date&type=video&key=${API_KEY}${
+          isLoadMore && relatedNextPage ? `&pageToken=${relatedNextPage}` : ''
+        }`;
+      } else {
+        const categoryId = detailsData.items[0].snippet.categoryId;
+        const videoTitle = detailsData.items[0].snippet.title;
+
+        searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=${categoryId}&maxResults=10&regionCode=${regionCode}&q=${videoTitle
+          .split(' ')
+          .slice(0, 3)
+          .join(' ')}&key=${API_KEY}${
+          isLoadMore && relatedNextPage ? `&pageToken=${relatedNextPage}` : ''
+        }`;
+      }
 
       const searchRes = await fetch(searchUrl);
       const searchData = await searchRes.json();
+      console.log(
+        'TCL: getRelatedVideos -> searchData',
+        JSON.stringify(searchData),
+      );
 
       if (isLoadMore) {
-        setRelatedVideos(prev => [...prev, ...searchData.items]);
+        setRelatedVideos(prev => [
+          ...prev,
+          ...(Array.isArray(searchData?.items) ? searchData.items : []),
+        ]);
       } else {
         setRelatedVideos(searchData.items || []);
       }
@@ -181,10 +261,17 @@ function ParentVideoDetailScreen({route}) {
   return (
     <View style={{flex: 1, backgroundColor: '#e5e5e5'}}>
       <YoutubePlayer
-        height={220}
+        height={playerHeight}
         videoId={videoId}
         play={true}
         webViewProps={{setSupportMultipleWindows: false}}
+        initialPlayerParams={{
+          rel: 0, // 'rel' = related videos
+          modestbranding: true,
+          controls: 1,
+          showinfo: false,
+        }}
+        // initialPlayerParams={{ controls: false }}
       />
       <View style={{padding: 10}}>
         <Text style={styles.title}>{videoDetails?.snippet?.title}</Text>
@@ -265,6 +352,7 @@ function ParentVideoDetailScreen({route}) {
                 onPress={() =>
                   navigation.replace('Add Video', {
                     videoId: item.id.videoId,
+                    comingFrom: comingFrom ? comingFrom : '',
                   })
                 }>
                 <Image

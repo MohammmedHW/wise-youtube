@@ -95,40 +95,61 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 
     setLoading(true);
     try {
-      const response = await fetch(
-        'http://timesride.com/custom/ParentSignUp.php',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: email,
-      password: password,
-            firstName: firstName,
-            lastName: lastName,
-            phoneNumber: phone,
-          }),
-        },
-      );
+      // const response = await fetch(
+      //   'http://timesride.com/custom/ParentSignUp.php',
+      //   {
+      //     method: 'POST',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //     },
+      //     body: JSON.stringify({
+      //       email: email,
+      //       password: password,
+      //       firstName: firstName,
+      //       lastName: lastName,
+      //       phoneNumber: phone,
+      //     }),
+      //   },
+      // );
+      // console.log('TCL: handleSignUp -> response', response);
 
-      const data = await response.json();
+      // const data = await response.json();
+      const response = await Auth.login({
+        action: 'signup',
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        password: password,
+        phone: phone,
+      });
+      console.log('TCL: handleSignUp -> response', response);
 
-      if (data.status === 'success') {
-        await AsyncStorage.setItem('token', data.token);
-        await AsyncStorage.setItem('userId', data.userId);
-        await AsyncStorage.setItem('role', data.role);
-        // Store the signup date
-        await AsyncStorage.setItem('loginDate', new Date().toISOString());
-          onLoginSuccess();
-        } else {
-          alert({
-            type: DropdownAlertType.Error,
-          title: 'Error',
-          message: data.message || 'Sign up failed',
+      if (response?.data?.status === 'success') {
+        alert({
+          type: DropdownAlertType.Success,
+          title: 'Success',
+          message: 'Sign up successful',
         });
+        setEmail('');
+        setPassword('');
+        setPhone('');
+        setOtp('');
+        setAgreedToTerms('');
+        //   await AsyncStorage.setItem('token', data.token);
+        //   await AsyncStorage.setItem('userId', data.userId);
+        //   await AsyncStorage.setItem('role', data.role);
+        //   // Store the signup date
+        //   await AsyncStorage.setItem('loginDate', new Date().toISOString());
+        //   onLoginSuccess();
+        // } else {
+        //   alert({
+        //     type: DropdownAlertType.Error,
+        //     title: 'Error',
+        //     message: data.message || 'Sign up failed',
+        //   });
       }
     } catch (error) {
+      console.log('TCL: handleSignUp -> error', error);
       alert({
         type: DropdownAlertType.Error,
         title: 'Error',
@@ -168,6 +189,7 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
         Alert.alert('OTP Failed', 'Failed to send OTP. Please try again.');
       }
     } catch (err) {
+			console.log("TCL: sendOtp -> err", err)
       console.log(err);
       Alert.alert('Error', 'Something went wrong while sending OTP.');
     } finally {

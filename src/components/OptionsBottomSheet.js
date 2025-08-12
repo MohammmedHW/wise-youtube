@@ -89,7 +89,7 @@ const OptionsBottomSheet = ({
     <RBSheet
       ref={sheetRef}
       closeOnPressMask={true}
-      height={180}
+      height={100}
       customStyles={{
         container: {
           padding: 10,
@@ -120,7 +120,7 @@ const OptionsBottomSheet = ({
         </TouchableOpacity>
 
         {/* Download Option */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={handleDownload}
           style={{flexDirection: 'row', alignItems: 'center', marginTop: 10}}>
           <MaterialIcons name="file-download" size={24} color="#333" />
@@ -133,10 +133,10 @@ const OptionsBottomSheet = ({
             }}>
             Download Video
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* Share Option */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={handleShare}
           style={{flexDirection: 'row', alignItems: 'center', marginTop: 10}}>
           <MaterialIcons name="share" size={24} color="#333" />
@@ -149,7 +149,7 @@ const OptionsBottomSheet = ({
             }}>
             Share
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     </RBSheet>
   );

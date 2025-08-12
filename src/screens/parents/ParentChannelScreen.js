@@ -90,7 +90,7 @@ function ChannelVideos({route}) {
         }}>
         <TouchableHighlight
           style={{width: '100%'}}
-          onPress={() => navigation.navigate('Add Video', {videoId})}>
+          onPress={() => navigation.navigate('Add Video')}>
           <Image
             source={{uri: item.snippet?.thumbnails?.medium?.url}}
             style={{
@@ -150,11 +150,22 @@ function ChannelVideos({route}) {
   };
 
   const handleAddToPlaylist = async playlistId => {
+    console.log("ParentchannelScreen.js");
+    console.log(selectedVideoId);
     const email = await AsyncStorage.getItem('userUserName');
+    const isYouTubePlaylist =
+      selectedVideoId?.startsWith('PL') || selectedVideoId?.includes('list=');
+
+    const video_link = isYouTubePlaylist
+      ? `https://www.youtube.com/playlist?list=${selectedVideoId.replace(
+          'https://www.youtube.com/playlist?list=',
+          '',
+        )}`
+      : `https://www.youtube.com/watch?v=${selectedVideoId}`;
 
     const data = {
       email_id: email,
-      video_link: `https://www.youtube.com/watch?v=${selectedVideoId}`,
+      video_link,
       playlist_id: String(playlistId),
     };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useContext, useState} from 'react';
 import {
   View,
   Text,
@@ -10,19 +10,25 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+
 import AppColors from '../utils/AppColors';
 import AppFonts from '../utils/AppFonts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SubscriptionService from '../services/subscriptionService';
+import DropdownAlert, { DropdownAlertType } from 'react-native-dropdownalert';
+import { AppContext } from '../contextApi/AppContext';
 
-const TrialScreen = ({ onTrialComplete }) => {
+const TrialScreen = ({onTrialComplete}) => {
   const [loading, setLoading] = useState(false);
+  const {setCheckTrialFirstTime ,checkTrialFirstTime } = useContext(AppContext);
+
+  let alert = _data => new Promise(res => res);
 
   const handleStartTrial = async () => {
     try {
       setLoading(true);
       const email = await AsyncStorage.getItem('userUserName');
-      
+
       if (!email) {
         Alert.alert('Error', 'User email not found');
         return;
@@ -30,16 +36,28 @@ const TrialScreen = ({ onTrialComplete }) => {
 
       const response = await SubscriptionService.addTrialSubscription(email);
       const response1 = await SubscriptionService.getSubscription(email);
-      console.log("Response 1",response1);
+      console.log('Response 1', response1);
       console.log('Trial response:', response);
-      
+
       if (response.message === 'Subscription already exists for this email') {
-        console.log("Trial already exists, proceeding to main app");
+        console.log('Trial already exists, proceeding to main app');
         onTrialComplete(true);
+        Alert.alert(
+          'Trial Period Completed',
+          'You need to purchase the subscription to continue using the app, by clicking on the button "Skip Trial"',
+          [{text: 'OK'}],
+        );
+     
+       
       } else if (response.status === 'success') {
-        console.log("New trial created, proceeding to main app");
-        
+        console.log('New trial created, proceeding to main app');
+        setCheckTrialFirstTime(true);
         onTrialComplete(true);
+        alert({
+          type: DropdownAlertType.Success,
+          title: 'Congratulations',
+          message: 'You have earned 3 days of trial.',
+        });
       } else {
         console.error('Failed to start trial:', response.message);
         Alert.alert('Error', response.message || 'Failed to start trial');
@@ -55,7 +73,7 @@ const TrialScreen = ({ onTrialComplete }) => {
   };
 
   const handleSkipTrial = () => {
-    console.log("handle skip trial)+");
+    console.log('handle skip trial)+');
     onTrialComplete(false);
   };
 
@@ -73,14 +91,18 @@ const TrialScreen = ({ onTrialComplete }) => {
       <View style={styles.content}>
         <Text style={styles.title}>Start Your Free Trial</Text>
         <Text style={styles.subtitle}>
-          Get 3 days of full access to all premium features. No credit card required.
+          Get 3 days of full access to all premium features. No credit card
+          required.
         </Text>
-        
+
         <View style={styles.featuresContainer}>
           <Text style={styles.featureText}>✓ Full access to all content</Text>
           <Text style={styles.featureText}>✓ No credit card required</Text>
           <Text style={styles.featureText}>✓ Cancel anytime</Text>
-          <Text style={styles.featureText}>✓ If you already use trial period the Start Free Trial button won't work.</Text>
+          <Text style={styles.featureText}>
+            ✓ If you already use trial period the Start Free Trial button won't
+            work.
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -97,16 +119,18 @@ const TrialScreen = ({ onTrialComplete }) => {
         <Text style={styles.orText}>OR</Text>
 
         <TouchableOpacity
-          style={[styles.skipButton, { opacity: loading ? 0.5 : 1 }]}
+          style={[styles.skipButton, {opacity: loading ? 0.5 : 1}]}
           onPress={handleSkipTrial}
           disabled={loading}>
           <Text style={styles.skipButtonText}>Skip Trial</Text>
         </TouchableOpacity>
-
         <Text style={styles.termsText}>
-          By starting the trial, you agree to our Terms of Service and Privacy Policy
+          By starting the trial, you agree to our Terms of Service and Privacy
+          Policy
         </Text>
+
       </View>
+
     </SafeAreaView>
   );
 };
@@ -184,4 +208,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TrialScreen; 
+export default TrialScreen;

@@ -20,9 +20,13 @@ const LogoutButton = ({navigation, onLogout}) => {
       {
         text: 'Logout',
         onPress: async () => {
-          await AsyncStorage.clear();
+          // await AsyncStorage.clear();
           onLogout();
-          navigation.replace('Login');
+          
+          // navigation.reset({
+          //   index: 0,
+          //   routes: [{ name: 'Login' }],
+          // });
         },
       },
     ]);

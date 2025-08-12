@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,14 @@ import {
   SafeAreaView,
   ScrollView,
   KeyboardAvoidingView,
+  Linking,
 } from 'react-native';
+import RBSheet from 'react-native-raw-bottom-sheet';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {Dimensions} from 'react-native';
+const screenHeight = Dimensions.get('window').height;
+
+import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AppColors from '../../utils/AppColors';
@@ -20,10 +27,14 @@ import DropdownAlert, {
   DropdownAlertType,
 } from 'react-native-dropdownalert';
 import AppFonts from '../../utils/AppFonts';
-import { useNavigation } from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
+import {red} from 'react-native-reanimated/lib/typescript/Colors';
+import SubscriptionService from '../../services/subscriptionService';
 
 const ParentProfileScreen = () => {
   const navigation = useNavigation();
+  const refRBSheet = useRef();
+
   const [userName, setUserName] = useState('');
   const [userParentFirstName, setUserParentFirstName] = useState('');
   const [userParentLastName, setUserParentLastName] = useState('');
@@ -32,6 +43,13 @@ const ParentProfileScreen = () => {
   const [isPinSet, setIsPinSet] = useState(false);
   const [isHomeLocked, setIsHomeLocked] = useState(false);
   const [isTrialActive, setIsTrialActive] = useState(false);
+  const [subscriptionValidTill, setSubscriptionValidTill] = useState(null);
+  const [subscriptionDetails, setSubscriptionDetails] = useState(null);
+  console.log(
+    'TCL: ParentProfileScreen -> subscriptionDetails',
+    subscriptionDetails,
+  );
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -41,6 +59,18 @@ const ParentProfileScreen = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   let alert = _data => new Promise(res => res);
 
+  const checkLock = async () => {
+    const isLocked = await AsyncStorage.getItem('homeLocked');
+    console.log('TCL: checkLock -> isLocked', isLocked);
+    setIsHomeLocked(isLocked === 'true');
+  };
+  useEffect(() => {
+    const isFocused = navigation.addListener('focus', () => {
+      checkLock();
+    });
+    return isFocused;
+  }, [navigation]);
+
   useEffect(() => {
     const fetchData = async () => {
       const name = await AsyncStorage.getItem('userUserName');
@@ -49,45 +79,22 @@ const ParentProfileScreen = () => {
       const email = await AsyncStorage.getItem('userEmail');
       const storedPin = await AsyncStorage.getItem('userPin');
       const homeLocked = await AsyncStorage.getItem('homeLocked');
-      
+
       // Check trial status
       const trialData = await AsyncStorage.getItem('trialdata');
+      console.log('TCL: fetchData -> trialData', trialData);
       const PriceData = await AsyncStorage.getItem('pricedata');
-      const expiryDate = await AsyncStorage.getItem('expirydata');
-      
+      const DaysRemaining = await AsyncStorage.getItem('daysRemaining');
+      const daysRemainingParsed = JSON.parse(DaysRemaining);
+      console.log('TCL: fetchData -> daysRemainingParsed', daysRemainingParsed);
       console.log(trialData);
-      console.log("trial data", PriceData);
-      console.log("expiry date", expiryDate);
-
-      if (trialData && PriceData) {
+      console.log('tiral data', PriceData);
+      console.log('daysremaining', daysRemainingParsed);
+      if (trialData && PriceData && daysRemainingParsed <= 3) {
         setIsTrialActive(true);
+        console.log('inside');
       }
-
-      // Check expiry date and show alert if less than 2 days remaining
-      if (expiryDate) {
-        const currentDate = new Date();
-        const expiry = new Date(expiryDate);
-        const diffTime = expiry - currentDate;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays <= 2 && diffDays > 0) {
-          Alert.alert(
-            'Subscription Expiring Soon',
-            `Your subscription will expire in ${diffDays} day${diffDays === 1 ? '' : 's'}. Please renew your subscription to continue using the app.`,
-            [
-              {
-                text: 'Purchase Now',
-                onPress: () => navigation.navigate('PaywallScreen'),
-                style: 'default',
-              },
-              {
-                text: 'Later',
-                style: 'cancel',
-              },
-            ]
-          );
-        }
-      }
+      console.log(isTrialActive);
 
       setUserName(name || '');
       setUserParentFirstName(fName || '');
@@ -95,6 +102,30 @@ const ParentProfileScreen = () => {
       setUserEmail(email || '');
       setIsPinSet(!!storedPin);
       setIsHomeLocked(homeLocked === 'true');
+      const subscriptionDetails = await SubscriptionService.getSubscription(
+        name,
+      );
+      console.log('TCL: fetchData -> email', email);
+
+      console.log('TCL: fetchData -> subscriptionDetails', subscriptionDetails);
+      if (subscriptionDetails) {
+        // const findUserSubs = subscriptionDetails?.data?.find((item)=>item?.email==email);
+        // console.log("TCL: fetchData -> findUserSubs", findUserSubs)
+        setSubscriptionDetails(subscriptionDetails?.data?.[0]);
+        const expDate = subscriptionDetails?.data?.[0]?.expiry_date;
+        console.log('TCL: fetchData -> expDate', expDate);
+        if (expDate) {
+          console.log('TCL: fetchData -> readableDate');
+          try {
+            const readableDate = moment(expDate).format('MMMM Do YYYY');
+            console.log('TCL: fetchData -> readableDate', readableDate);
+
+            setSubscriptionValidTill(readableDate);
+          } catch (err) {
+            console.log('TCL: fetchData -> err', err);
+          }
+        }
+      }
     };
     fetchData();
   }, []);
@@ -109,6 +140,93 @@ const ParentProfileScreen = () => {
     setNewPin('');
     setOtpVerified(false);
     setLoading(false);
+  };
+
+  const MyComponent = ({refRBSheet, subscriptionDetails}) => {
+    return (
+      <RBSheet
+        ref={refRBSheet}
+        height={screenHeight * 0.45}
+        openDuration={250}
+        closeOnDragDown={true}
+        dragFromTopOnly={true}
+        customStyles={{
+          wrapper: {
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          },
+          container: {
+            backgroundColor: '#fff',
+            paddingHorizontal: 24,
+            paddingVertical: 20,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+          },
+          draggableIcon: {
+            backgroundColor: '#ccc',
+            width: 60,
+          },
+        }}>
+        <View>
+          <Text
+            style={{
+              fontSize: 22,
+              fontWeight: '700',
+              color: '#333',
+              textAlign: 'center',
+              marginBottom: 20,
+              marginTop: 30,
+            }}>
+            🎟 Subscription Details
+          </Text>
+
+          {[
+            {
+              label: 'Status',
+              value: `Subscribed ${
+                subscriptionDetails?.is_trial == 1 ? '(Trial)' : ''
+              }`,
+            },
+            {label: 'Plan', value: subscriptionDetails?.product_id},
+            {label: 'Price', value: subscriptionDetails?.price},
+            {
+              label: 'Purchased on',
+              value: moment(subscriptionDetails?.purchase_date).format(
+                'D MMMM YYYY',
+              ),
+            },
+            {
+              label: 'Valid till',
+              value: moment(subscriptionDetails?.expiry_date).format(
+                'D MMMM YYYY',
+              ),
+            },
+          ].map((item, index) => (
+            <View
+              key={index}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+              }}>
+              <Text style={{fontWeight: '600', fontSize: 16, color: '#444'}}>
+                {item.label}:
+              </Text>
+              <Text style={{fontSize: 16, color: '#444'}}>{item.value}</Text>
+            </View>
+          ))}
+
+          <Text
+            style={{
+              fontSize: 12,
+              color: '#999',
+              marginTop: 10,
+              textAlign: 'center',
+            }}>
+            Order ID: {subscriptionDetails?.order_id}
+          </Text>
+        </View>
+      </RBSheet>
+    );
   };
 
   const handlePinAction = async () => {
@@ -299,9 +417,9 @@ const ParentProfileScreen = () => {
               )}
             </View>
 
-            {isTrialActive && (
-              <View style={styles.subscriptionSection}>
-                <Text style={styles.sectionTitle}>Subscription</Text>
+            <View style={styles.subscriptionSection}>
+              <Text style={styles.sectionTitle}>Subscription</Text>
+              {isTrialActive ? (
                 <TouchableOpacity
                   style={styles.subscriptionButton}
                   onPress={handleSubscriptionPress}>
@@ -309,8 +427,80 @@ const ParentProfileScreen = () => {
                     Purchase Subscription
                   </Text>
                 </TouchableOpacity>
-              </View>
-            )}
+              ) : (
+                <>
+                  <View style={styles.subscribedContainer}>
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        gap: 10,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => refRBSheet.current.open()}>
+                      <Text style={styles.subscribedText}>Subscribed</Text>
+                      <MaterialIcons
+                        name={'visibility'}
+                        size={20}
+                        color={AppColors.gray}
+                        style={{marginBottom: 2}}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{...styles.subscribedContainer, marginTop: 10}}>
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        gap: 10,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => {
+                        Alert.alert(
+                          'Cancel Subscription',
+                          `Your plan will not be auto renewed but you can watch until ${moment(
+                            subscriptionDetails?.expiry_date,
+                          ).format('D MMMM YYYY')}. No refunds will be made.`,
+                          [
+                            {text: 'No', onPress: () => {}, style: 'cancel'},
+                            {
+                              text: 'Yes',
+                              onPress: () =>
+                                Linking.openURL(
+                                  'https://play.google.com/store/account/subscriptions',
+                                ),
+                            },
+                          ],
+                          {cancelable: false},
+                        );
+                      }}>
+                      <Text style={{...styles.subscribedText, color: 'red'}}>
+                        Cancel Subscription
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* <Text style={styles.validTillText}>
+                  Valid till - {subscriptionValidTill}
+                </Text> */}
+                  </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      Linking.openURL('https://timesride.com/wisetube/faqs/')
+                    }
+                    style={{alignSelf: 'center' , marginTop:20}}>
+                    <Text style={styles.signupPrompt}>
+                      <Text
+                        style={{
+                          color: AppColors.theme,
+                          fontFamily: AppFonts.SemiBold,
+                          textDecorationLine: 'underline',
+                        }}>
+                        WiseTube Help Center
+                      </Text>
+                    </Text>
+                     <Text style={{...styles.signupLink , textDecorationLine:'underline',textAlign:'center' , color:AppColors.theme ,fontFamily: AppFonts.SemiBold,}}>Help & FAQs</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
 
             {showModal && (
               <View style={styles.modalOverlay}>
@@ -365,6 +555,10 @@ const ParentProfileScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <MyComponent
+        refRBSheet={refRBSheet}
+        subscriptionDetails={subscriptionDetails}
+      />
       <DropdownAlert alert={func => (alert = func)} alertPosition="bottom" />
     </SafeAreaView>
   );
@@ -490,6 +684,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  trialquote: {
+    textAlign: 'center',
+    color: AppColors.red,
+  },
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
@@ -503,7 +701,7 @@ const styles = StyleSheet.create({
   },
   subscriptionSection: {
     marginTop: 20,
-    marginHorizontal:25,
+    marginHorizontal: 25,
     padding: 15,
     backgroundColor: '#fff',
     borderRadius: 15,
@@ -514,7 +712,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 5,marginBottom:20
   },
   subscriptionButton: {
     backgroundColor: AppColors.orange,
@@ -527,6 +725,22 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  subscribedContainer: {
+    padding: 15,
+    borderRadius: 8,
+    backgroundColor: '#F0F2F5',
+    alignItems: 'center',
+  },
+  subscribedText: {
+    color: AppColors.orange,
+    fontSize: 16,
+    fontFamily: AppFonts.Regular,
+  },
+  validTillText: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 4,
   },
 });
 

@@ -13,6 +13,7 @@ import {
   StatusBar,
   ScrollView,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 // import { RadioButton } from "react-native-paper";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,8 +34,10 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import { getApp } from '@react-native-firebase/app';
 import { getAuth, signInWithEmailAndPassword, signOut } from '@react-native-firebase/auth';
 import SubscriptionService from '../services/subscriptionService';
+import { checkLoginInFirstTime, getUserByEmail } from '../services/authService';
 
 const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
+	console.log("TCL: LoginScreen -> onLoginSuccess", onLoginSuccess)
   const [isModalVisible, setModalVisible] = useState(false);
 
   const navigation = useNavigation();
@@ -61,11 +64,11 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
     GoogleSignin.configure({
       // Replace this with your new Web Client ID from Google Cloud Console
       webClientId: '380327626433-iqnmcb6uvse8dgipio6kfcr87pddq7ki.apps.googleusercontent.com',
-      androidClientId: '380327626433-jujubpgd21ejajjtou4fk7t1nmsumo0t.apps.googleusercontent.com',
+      // androidClientId: '380327626433-jujubpgd21ejajjtou4fk7t1nmsumo0t.apps.googleusercontent.com',
       offlineAccess: true,
-      scopes: ['https://www.googleapis.com/auth/drive'],
-      forceCodeForRefreshToken: true,
-      profileImageSize: 120,
+      // scopes: ['https://www.googleapis.com/auth/drive'],
+      // forceCodeForRefreshToken: true,
+      // profileImageSize: 120,
     });
   }, []);
 
@@ -273,7 +276,15 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
       // const auth = getAuth(app);
       // const userCredential = await signInWithEmailAndPassword(auth, userName, password);
       // console.log('Firebase auth successful:', userCredential.user.uid);
+    //  const resssss = await  getUserByEmail(userName)
 
+
+    
+
+     let showTrialAlert = false
+    //  if (resssss?.data?.last_loggedIn==null) {
+    //   showTrialAlert = true
+    //  }
       // Then proceed with your API login
       const response = await Auth.login({
         action: 'login',
@@ -316,10 +327,11 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
         if (!trialData) {
           // No trial data found, it will be handled by App.js
           console.log('No trial data found, will show trial screen');
-        }
+			console.log("TCL: parentLogin -> showTrialAlert", showTrialAlert)
+    }
 
         console.log('Data stored, calling onLoginSuccess');
-        onLoginSuccess(response.data.data);
+        onLoginSuccess(response.data.data ,showTrialAlert );
       } else {
         // If API login fails, sign out from Firebase
         const app = getApp();
@@ -329,6 +341,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
         Alert.alert('Error', response?.data?.message || 'Login failed');
       }
     } catch (error) {
+			console.log("TCL: parentLogin -> error", error)
       // If any error occurs, sign out from Firebase
       const app = getApp();
       const auth = getAuth(app);
@@ -452,6 +465,13 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
             <Text style={styles.signupPrompt}>
               <Text style={styles.signupLink}>Sign Up</Text>
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={()=>Linking.openURL('https://timesride.com/wisetube/faqs/')}>
+            <Text style={styles.signupPrompt}>
+            <Text style={{...styles.signupLink , textDecorationLine:'underline'}}>WiseTube Help Center</Text>
+            </Text>
+            <Text style={{...styles.signupLink , textDecorationLine:'underline',textAlign:'center'}}>Help & FAQs</Text>
+
           </TouchableOpacity>
 
           {/* ---------------- Forgot Password Modal ---------------- */}

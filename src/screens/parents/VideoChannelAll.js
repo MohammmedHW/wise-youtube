@@ -110,6 +110,7 @@ export default function VideoChannelAll() {
 
         fetchChannelVideos(sortedChannels[0].id);
         setSelectedChannel(sortedChannels[0].id);
+        setVideoFilter('none')
       } else {
         setSubscribedChannels([]);
         setIsLoading(false);
@@ -121,6 +122,8 @@ export default function VideoChannelAll() {
       setIsLoading(false);
     }
   };
+
+
 
   const unsubscribeChannel = async channelId => {
     try {
@@ -187,16 +190,45 @@ export default function VideoChannelAll() {
       let orderParam = '';
       if (videoFilter === 'latest') orderParam = '&order=date';
       else if (videoFilter === 'popular') orderParam = '&order=viewCount';
+      else if (videoFilter === 'oldest') orderParam = '&order=viewCount';
+      console.log('TCL: fetchChannelVideos -> videoFilter', videoFilter);
 
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=10&type=video${orderParam}&key=${API_KEY}${
+      // First get the channel's uploads playlist ID
+      const channelResponse = await fetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${API_KEY}`,
+      );
+      const channelData = await channelResponse.json();
+
+      if (!channelData.items || channelData.items.length === 0) {
+        throw new Error('Channel not found');
+      }
+
+      const uploadsPlaylistId =
+        channelData.items[0].contentDetails.relatedPlaylists.uploads;
+
+      // Now fetch videos from the uploads playlist
+      const searchUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=10${orderParam}&key=${API_KEY}${
         isLoadMore && videoNextPage ? `&pageToken=${videoNextPage}` : ''
       }`;
 
       const searchResponse = await fetch(searchUrl);
       const searchData = await searchResponse.json();
 
+      // Check if we have valid data
+      if (!searchData || !searchData.items) {
+        console.log('API Response:', searchData);
+        throw new Error('Invalid response from YouTube API');
+      }
+
+      // If no videos found
+      if (searchData.items.length === 0) {
+        setVideos([]);
+        setVideoNextPage(null);
+        return;
+      }
+
       const videoIds = searchData.items
-        .map(item => item.id?.videoId)
+        .map(item => item.snippet?.resourceId?.videoId)
         .filter(Boolean)
         .join(',');
 
@@ -207,35 +239,73 @@ export default function VideoChannelAll() {
         const statsResponse = await fetch(statsUrl);
         const statsData = await statsResponse.json();
 
-        statsData.items.forEach(item => {
-          statisticsMap[item.id] = item.statistics;
-        });
+        if (statsData.items) {
+          statsData.items.forEach(item => {
+            statisticsMap[item.id] = item.statistics;
+          });
+        }
       }
 
       const enrichedItems = searchData.items.map(item => ({
         ...item,
-        statistics: statisticsMap[item.id?.videoId] || {},
+        statistics: statisticsMap[item.snippet?.resourceId?.videoId] || {},
       }));
+      let sortedItems = [...enrichedItems];
 
+      if (videoFilter === 'oldest') {
+        sortedItems.sort(
+          (a, b) =>
+            new Date(a.snippet.publishedAt) - new Date(b.snippet.publishedAt),
+        );
+      } else if (videoFilter === 'latest') {
+        sortedItems.sort(
+          (a, b) =>
+            new Date(b.snippet.publishedAt) - new Date(a.snippet.publishedAt),
+        );
+      } else if (videoFilter === 'popular') {
+        sortedItems.sort(
+          (a, b) =>
+            parseInt(b.statistics.viewCount || 0) -
+            parseInt(a.statistics.viewCount || 0),
+        );
+      }
+
+      // Apply result
       if (isLoadMore) {
-        setVideos(prev => [
-          ...prev,
-          ...(videoFilter === 'oldest'
-            ? enrichedItems.reverse()
-            : enrichedItems),
-        ]);
+        setVideos(prev => [...prev, ...sortedItems]);
       } else {
-        const sortedItems =
-          videoFilter === 'oldest'
-            ? [...enrichedItems].reverse()
-            : enrichedItems;
         setVideos(sortedItems);
+        console.log('TCL: fetchChannelVideos -> sortedItems', sortedItems);
         setSelectedChannel(channelId);
       }
+
+      // if (isLoadMore) {
+      //   setVideos(prev => [
+      //     ...prev,
+      //     ...(videoFilter === 'oldest'
+      //       ? enrichedItems.reverse()
+      //       : enrichedItems),
+      //   ]);
+      // } else {
+      //   const sortedItems =
+      //     videoFilter === 'oldest'
+      //       ? [...enrichedItems].reverse()
+      //       : enrichedItems;
+      //   setVideos(sortedItems);
+      // 	console.log("TCL: fetchChannelVideos -> sortedItems", sortedItems)
+
+      //   setSelectedChannel(channelId);
+      // }
 
       setVideoNextPage(searchData.nextPageToken || null);
     } catch (error) {
       console.error('Failed to fetch channel videos:', error);
+      console.log('Error details:', error.message);
+      Alert.alert(
+        'Error',
+        'Failed to fetch videos from this channel. Please try again later.',
+      );
+      setVideos([]); // Clear videos on error
     } finally {
       setIsLoading(false);
       setLoadingMoreVideos(false);
@@ -325,7 +395,9 @@ export default function VideoChannelAll() {
         }}>
         {videoId && (
           <TouchableOpacity
-            onPress={() => navigation.navigate('Add Video', {videoId})}>
+            onPress={() =>
+              navigation.navigate('Add Video', {videoId, comingFrom: 'channel'})
+            }>
             <Image
               source={{uri: thumbnailUri}}
               style={{width: '100%', height: 200}}
@@ -399,7 +471,25 @@ export default function VideoChannelAll() {
     }
   };
 
+    // useEffect(() => {
+    //   const isFocused = navigation.addListener('focus', () => {
+    //     setVideoFilter('none')
+    //   });
+    //   return isFocused;
+    // }, [navigation]);
+
+
+  useEffect(() => {
+	console.log("TCL: videoFilter", videoFilter)
+  console.log("TCL: selectedChannel", selectedChannel)
+
+    if (selectedChannel) {
+      fetchChannelVideos(selectedChannel);
+    }
+  }, [videoFilter]);
+
   const handleAddToPlaylist = async playlistId => {
+    console.log('VideoChannelAll.js');
     const email = await AsyncStorage.getItem('userUserName');
 
     const data = {
@@ -466,7 +556,7 @@ export default function VideoChannelAll() {
                   key={filter}
                   onPress={() => {
                     setVideoFilter(filter);
-                    fetchChannelVideos(selectedChannel);
+                    // fetchChannelVideos(selectedChannel);
                   }}
                   style={{
                     padding: 8,
