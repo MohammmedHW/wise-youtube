@@ -460,7 +460,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
           <TouchableOpacity onPress={() => setModalVisible(true)}>
             <Text style={styles.linkText}>Forgot Password?</Text>
           </TouchableOpacity>
-            <Text style={styles.signupPrompt}>Create a new account?{' '}</Text>
+            <Text style={styles.signupPrompt}>Create  new account?{' '}</Text>
           <TouchableOpacity onPress={handleSignup}>
             <Text style={styles.signupPrompt}>
               <Text style={styles.signupLink}>Sign Up</Text>
