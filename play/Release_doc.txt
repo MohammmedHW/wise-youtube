@@ -1,0 +1,9 @@
+Keystore file : wisetube.jks
+
+Password : wisetube
+
+Alias : wise
+
+Alias pass : wisetube
+
+Firebase : paras's email id
