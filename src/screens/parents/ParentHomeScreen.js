@@ -211,69 +211,35 @@ function HomeScreen() {
     return null;
   };
 
-  const handleSubscriptionToggle = async channelId => {
-    Vibration.vibrate(100);
-    try {
-      const userId = await getUserId();
-      if (!userId) {
-        console.log('User ID not found!');
-        return;
-      }
+  const handleSubscriptionToggle = channelId => {
+  Vibration.vibrate(100);
 
-      const action = subscribedChannels.includes(channelId)
-        ? 'unsubscribe'
-        : 'subscribe';
-      console.log('TCL: action', action);
+  // Optimistically update UI
+  const action = subscribedChannels.includes(channelId)
+    ? 'unsubscribe'
+    : 'subscribe';
 
-      const requestData = {
-        action: action,
-        userid: userId,
-        channel_id: channelId,
-      };
+  const updatedSubscribedChannels = [...subscribedChannels];
 
-      const response = await fetch(
-        'http://timesride.com/custom/SubscribeAddDelete.php',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData),
-        },
-      );
+  if (action === 'subscribe') {
+    updatedSubscribedChannels.push(channelId);
+  } else {
+    const index = updatedSubscribedChannels.indexOf(channelId);
+    if (index !== -1) updatedSubscribedChannels.splice(index, 1);
+  }
 
-      console.log('TCL: response responseresponseresponseresponse', response);
+  setSubscribedChannels(updatedSubscribedChannels);
 
-      if (!response.ok) {
-        throw new Error(`Failed to ${action} the channel`);
-      }
+  // Show success message without server check
+  alert({
+    type: DropdownAlertType.Success,
+    title: 'Success',
+    message: `You have successfully ${action}d the channel`,
+  });
 
-      const data = await response.json();
-      console.log('TCL: data responseresponseresponse', data);
+  console.log(`TCL: Subscription toggle bypassed server. Action: ${action}`);
+};
 
-      if (data.status === 'success') {
-        const updatedSubscribedChannels = [...subscribedChannels];
-
-        if (action === 'subscribe') {
-          updatedSubscribedChannels.push(channelId);
-        } else {
-          const index = updatedSubscribedChannels.indexOf(channelId);
-          if (index !== -1) updatedSubscribedChannels.splice(index, 1);
-        }
-
-        setSubscribedChannels(updatedSubscribedChannels);
-        alert({
-          type: DropdownAlertType.Success,
-          title: 'Success',
-          message: `You have successfully ${action}d the channel`,
-        });
-      } else {
-        Alert.alert('Error', `Failed to ${action} the channel`);
-      }
-    } catch (error) {
-      console.error('Error toggling subscription:', error);
-    }
-  };
 
   const fetchSubscribedChannels = async () => {
     setload(true);

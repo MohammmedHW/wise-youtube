@@ -1,91 +1,79 @@
 import React from 'react';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {Alert, TouchableOpacity, Image, View, Text} from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons'; // You can change to MaterialIcons, FontAwesome, etc.
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useNavigation} from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+import AppColors from '../utils/AppColors';
 
 import ParentHomeScreen from '../screens/parents/ParentHomeScreen';
 import VideoChannelAll from '../screens/parents/VideoChannelAll';
 import ParentPlaylistScreen from '../screens/parents/ParentPlaylistScreen';
 import ParentProfileScreen from '../screens/parents/ParentProfileScreen';
-import AppColors from '../utils/AppColors';
 
 const Tab = createBottomTabNavigator();
 
-const LogoutButton = ({navigation, onLogout}) => {
-  const handleLogout = async () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      {text: 'Cancel', style: 'cancel'},
-      {
-        text: 'Logout',
-        onPress: async () => {
-          // await AsyncStorage.clear();
-          onLogout();
-          
-          // navigation.reset({
-          //   index: 0,
-          //   routes: [{ name: 'Login' }],
-          // });
-        },
-      },
-    ]);
-  };
-
-  return (
-    <TouchableOpacity onPress={handleLogout} style={{marginRight: 16}}>
-      <Icon name="log-out-outline" size={24} color={AppColors.theme} />
-    </TouchableOpacity>
-  );
-};
-
-const ParentsBottomTabNavigator = ({onLogout}) => {
+const ParentsBottomTabNavigator = ({ onLogout }) => {
   const navigation = useNavigation();
 
   return (
     <Tab.Navigator
-      screenOptions={({route}) => ({
-        headerRight: () => {
-          return <LogoutButton navigation={navigation} onLogout={onLogout} />;
-        },
+      screenOptions={({ route }) => ({
+        headerRight: () => (
+          <TouchableOpacity style={{ marginRight: 16 }} onPress={onLogout}>
+            <Icon name="log-out-outline" size={24} color={AppColors.theme} />
+          </TouchableOpacity>
+        ),
         tabBarStyle: {
           backgroundColor: '#fff',
           height: 60,
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowOffset: {width: 0, height: -2},
-          shadowRadius: 10,
-          elevation: 10,
+          paddingBottom: 4,
         },
-        tabBarActiveTintColor: AppColors.theme,
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#000', // text color always black
+        tabBarInactiveTintColor: '#000',
         tabBarLabelStyle: {
           fontSize: 12,
           marginBottom: 4,
         },
-        tabBarIcon: ({focused, color, size}) => {
-          let iconName;
-
+        tabBarIcon: ({ focused }) => {
+          let outlineName, fillName;
           switch (route.name) {
             case 'Home':
-              iconName = focused ? 'home' : 'home-outline';
+              outlineName = 'home-outline';
+              fillName = 'home';
               break;
             case 'Channel Video':
-              iconName = focused ? 'albums' : 'albums-outline';
+              outlineName = 'videocam-outline';
+              fillName = 'videocam';
               break;
             case 'Playlist':
-              iconName = focused ? 'list' : 'list-outline';
+              outlineName = 'musical-notes-outline';
+              fillName = 'musical-notes';
               break;
             case 'Profile':
-              iconName = focused ? 'person' : 'person-outline';
+              outlineName = 'person-outline';
+              fillName = 'person';
               break;
             default:
-              iconName = 'ellipse';
+              outlineName = 'ellipse-outline';
+              fillName = 'ellipse';
           }
 
-          return <Icon name={iconName} size={22} color={color} />;
+          return (
+            <View>
+              {/* Filled icon (yellow when active, transparent otherwise) */}
+              <Icon
+                name={fillName}
+                size={22}
+                color={focused ? '#FFD700' : 'transparent'}
+                style={StyleSheet.absoluteFill}
+              />
+              {/* Outline icon (always black) */}
+              <Icon name={outlineName} size={22} color="#000" />
+            </View>
+          );
         },
-      })}>
+      })}
+    >
       <Tab.Screen name="Home" component={ParentHomeScreen} />
       <Tab.Screen name="Channel Video" component={VideoChannelAll} />
       <Tab.Screen name="Playlist" component={ParentPlaylistScreen} />
@@ -93,5 +81,13 @@ const ParentsBottomTabNavigator = ({onLogout}) => {
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  iconWrapper: {
+    padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 export default ParentsBottomTabNavigator;

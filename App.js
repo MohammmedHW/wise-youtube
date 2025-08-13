@@ -225,22 +225,14 @@ export default function App() {
   };
 
   const handleSubscriptionComplete = success => {
-    // After subscription completion
-    console.log('App.js handleSubscriptionComplete:', success);
-    if (success) {
-      checkSubscription();
-      checkTrialStatus();
-    } else {
-      // When subscription check fails or user has no remaining days
-      console.log(
-        'App.js handleSubscriptionComplete: No active subscription, showing trial screen',
-      );
-      setShowTrial(true);
-      setShowPaywall(false);
-      setHasActiveSub(false);
-      setNavigatorComponent(null);
-    }
-  };
+  console.log('App.js handleSubscriptionComplete: bypassing subscription checks');
+  // Directly show the main app
+  setShowTrial(false);       // hide trial screen
+  setShowPaywall(false);     // hide paywall screen
+  setHasActiveSub(true);     // mark user as having access
+  setNavigatorComponent('MainApp'); // or whatever your main app component is
+};
+
 
   const handleLogout = async () => {
     try {
