@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -17,10 +17,10 @@ import {
 } from 'react-native';
 // import { RadioButton } from "react-native-paper";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {Auth, Users} from '../services';
-import {useNavigation} from '@react-navigation/native';
+import { Auth, Users } from '../services';
+import { useNavigation } from '@react-navigation/native';
 import Modal from 'react-native-modal';
-import {KeyboardAvoidingView} from 'react-native';
+import { KeyboardAvoidingView } from 'react-native';
 import AppLoader from '../components/AppLoader';
 import AppFonts from '../utils/AppFonts';
 import DropdownAlert, {
@@ -30,14 +30,14 @@ import DropdownAlert, {
 import Icon from 'react-native-vector-icons/Ionicons'; // or Feather
 import AppColors from '../utils/AppColors';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { getApp } from '@react-native-firebase/app';
 import { getAuth, signInWithEmailAndPassword, signOut } from '@react-native-firebase/auth';
 import SubscriptionService from '../services/subscriptionService';
 import { checkLoginInFirstTime, getUserByEmail } from '../services/authService';
 
-const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
-	console.log("TCL: LoginScreen -> onLoginSuccess", onLoginSuccess)
+const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
+  console.log("TCL: LoginScreen -> onLoginSuccess", onLoginSuccess)
   const [isModalVisible, setModalVisible] = useState(false);
 
   const navigation = useNavigation();
@@ -157,7 +157,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
     }
     try {
       setisLoading(true);
-      const result = await Auth.generateOtp({email: fpemail});
+      const result = await Auth.generateOtp({ email: fpemail });
       if ((result && result.status === 200) || result.status === 201) {
         if (result.data.message === 'OTP sent successfully') {
           alert({
@@ -196,7 +196,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
     try {
       setisLoading(true);
 
-      const res = await Auth.verifyOtp({email: fpemail, otp: fpotp});
+      const res = await Auth.verifyOtp({ email: fpemail, otp: fpotp });
       if ((res && res.status === 200) || res.status === 201) {
         if (res.data.message === 'OTP verified successfully') {
           alert({
@@ -276,15 +276,15 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
       // const auth = getAuth(app);
       // const userCredential = await signInWithEmailAndPassword(auth, userName, password);
       // console.log('Firebase auth successful:', userCredential.user.uid);
-    //  const resssss = await  getUserByEmail(userName)
+      //  const resssss = await  getUserByEmail(userName)
 
 
-    
 
-     let showTrialAlert = false
-    //  if (resssss?.data?.last_loggedIn==null) {
-    //   showTrialAlert = true
-    //  }
+
+      let showTrialAlert = false
+      //  if (resssss?.data?.last_loggedIn==null) {
+      //   showTrialAlert = true
+      //  }
       // Then proceed with your API login
       const response = await Auth.login({
         action: 'login',
@@ -292,10 +292,10 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
         password: password
       });
       console.log('Login response:', response);
-      
+
       if (response?.data?.status === 'success' && response?.data?.data?.token) {
         console.log('Login successful, storing data...');
-        
+
         // Clear any existing data first
         await AsyncStorage.multiRemove([
           'userUserName',
@@ -323,15 +323,15 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 
         // Check if trial status exists
         const trialData = await SubscriptionService.getSubscription(userName);
-        console.log("trialData from LoginScreen",trialData);
+        console.log("trialData from LoginScreen", trialData);
         if (!trialData) {
           // No trial data found, it will be handled by App.js
           console.log('No trial data found, will show trial screen');
-			console.log("TCL: parentLogin -> showTrialAlert", showTrialAlert)
-    }
+          console.log("TCL: parentLogin -> showTrialAlert", showTrialAlert)
+        }
 
         console.log('Data stored, calling onLoginSuccess');
-        onLoginSuccess(response.data.data ,showTrialAlert );
+        onLoginSuccess(response.data.data, showTrialAlert);
       } else {
         // If API login fails, sign out from Firebase
         const app = getApp();
@@ -341,7 +341,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
         Alert.alert('Error', response?.data?.message || 'Login failed');
       }
     } catch (error) {
-			console.log("TCL: parentLogin -> error", error)
+      console.log("TCL: parentLogin -> error", error)
       // If any error occurs, sign out from Firebase
       const app = getApp();
       const auth = getAuth(app);
@@ -352,7 +352,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
       setisLoading(false);
     }
   };
-  
+
 
   const handleGoogleLogin = async () => {
     try {
@@ -360,8 +360,8 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
       console.log("It is here ");
 
       const userInfo = await GoogleSignin.signIn();
-      const {email, givenName, familyName, id} = userInfo.data.user;
-      const {idToken} = userInfo.data;
+      const { email, givenName, familyName, id } = userInfo.data.user;
+      const { idToken } = userInfo.data;
       await AsyncStorage.multiSet([
         ['userUserName', email],
         ['userParentFirstName', givenName],
@@ -389,11 +389,11 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#9370db" />
+      <StatusBar barStyle="light-content" backgroundColor="#4B0082" />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{flex: 1}}>
+        style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled">
@@ -413,7 +413,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
           </View>
 
           <View style={styles.inputContainer}>
-            <View style={{flex: 0.8}}>
+            <View style={{ flex: 0.8 }}>
               <TextInput
                 style={styles.input}
                 placeholder="Password"
@@ -452,33 +452,45 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
               name="google"
               size={22}
               color="#fff"
-              style={{marginRight: 10}}
+              style={{ marginRight: 10 }}
             />
             <Text style={styles.googleButtonText}>Login with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setModalVisible(true)}>
-            <Text style={styles.linkText}>Forgot Password?</Text>
-          </TouchableOpacity>
-            <Text style={styles.signupPrompt}>Create  new account?{' '}</Text>
-          <TouchableOpacity onPress={handleSignup}>
-            <Text style={styles.signupPrompt}>
-              <Text style={styles.signupLink}>Sign Up</Text>
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={()=>Linking.openURL('https://timesride.com/wisetube/faqs/')}>
-            <Text style={styles.signupPrompt}>
-            <Text style={{...styles.signupLink , textDecorationLine:'underline'}}>WiseTube Help Center</Text>
-            </Text>
-            <Text style={{...styles.signupLink , textDecorationLine:'underline',textAlign:'center'}}>Help & FAQs</Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
+              <Text style={[styles.linkText, { fontSize: 12, color: 'grey' }]}>
+                Forgot Password?
+              </Text>
+            </TouchableOpacity>
+          </View>
 
+
+          <Text style={styles.signupPrompt}>
+            Create new account?{' '}
+            <Text style={styles.signupLink} onPress={handleSignup}>
+              Sign Up
+            </Text>
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => Linking.openURL('https://timesride.com/wisetube/faqs/')}
+            style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center',marginTop:20 }}
+          >
+            <Text style={{ ...styles.signupLink, textDecorationLine: 'underline', marginRight: 8 }}>
+              WiseTube Help Center
+            </Text>
+            <Text style={{ ...styles.signupLink, textDecorationLine: 'underline' }}>
+              Help & FAQs
+            </Text>
           </TouchableOpacity>
+
 
           {/* ---------------- Forgot Password Modal ---------------- */}
           <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
             <View style={styles.modalContainer}>
               <TouchableOpacity
-                style={{position: 'absolute', top: 10, right: 10, zIndex: 1}}
+                style={{ position: 'absolute', top: 10, right: 10, zIndex: 1 }}
                 onPress={toggleModal}>
                 <Icon name="close" size={24} color="#000" />
               </TouchableOpacity>
@@ -553,7 +565,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#9370db',
+    backgroundColor: '#F4F4F6', // Light neutral background
   },
   scrollContainer: {
     justifyContent: 'center',
@@ -568,94 +580,125 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
+    borderWidth: 3,
+    borderColor: '#4B0082',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 6,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     marginBottom: 15,
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: 12,
     elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   inputContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     marginBottom: 15,
     paddingHorizontal: 15,
     paddingVertical: 10,
-    elevation: 4,
-    justifyContent: 'space-between',
+    elevation: 3,
     flexDirection: 'row',
+    alignItems: 'center',
   },
   input: {
+    flex: 1,
     height: 40,
     fontSize: 16,
+    color: '#333',
   },
   loginButton: {
     backgroundColor: '#4B0082',
-    padding: 12,
-    borderRadius: 10,
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
     marginTop: 20,
+    shadowColor: '#4B0082',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
   },
   loginButtonText: {
     color: '#fff',
     fontSize: 16,
     fontFamily: AppFonts.SemiBold,
+    letterSpacing: 0.5,
   },
   linkText: {
-    color: '#FFD700',
+    color: '#4B0082',
     textAlign: 'center',
     marginTop: 15,
-    fontSize: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    fontSize: 15,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
     alignSelf: 'center',
     fontFamily: AppFonts.SemiBold,
   },
-
   signupPrompt: {
-    color: '#FFFFFF',
+    color: '#555',
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 15,
     marginTop: 20,
     fontFamily: AppFonts.SemiBold,
   },
   signupLink: {
-    color: '#FFD700',
+    color: '#4B0082',
     fontFamily: AppFonts.SemiBold,
   },
   modalContainer: {
-    backgroundColor: 'white',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     padding: 20,
-    paddingTop: 50, // <-- ADD THIS!
+    paddingTop: 50,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
   fpInput: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: '#DDD',
     borderWidth: 1,
     marginBottom: 10,
     paddingHorizontal: 10,
-    borderRadius: 5,
+    borderRadius: 8,
+    backgroundColor: '#FAFAFA',
   },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#DB4437', // Google red
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: '#DB4437',
+    paddingVertical: 12,
+    borderRadius: 14,
     marginTop: 12,
-    elevation: 1,
+    elevation: 3,
+    shadowColor: '#DB4437',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
   googleButtonText: {
     color: '#fff',
     fontSize: 16,
     fontFamily: AppFonts.SemiBold,
   },
+  footerLinks: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 0, // small padding from bottom
+},
+
 });
+
 
 export default LoginScreen;

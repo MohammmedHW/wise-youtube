@@ -64,7 +64,7 @@ const ParentsBottomTabNavigator = ({ onLogout }) => {
               <Icon
                 name={fillName}
                 size={22}
-                color={focused ? '#FFD700' : 'transparent'}
+                color={focused ? '#4B0082' : 'transparent'}
                 style={StyleSheet.absoluteFill}
               />
               {/* Outline icon (always black) */}
