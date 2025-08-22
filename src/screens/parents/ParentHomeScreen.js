@@ -147,8 +147,7 @@ function HomeScreen() {
 
   // Update selected category when route params change
   useEffect(() => {
-    const newCategory =
-      route.params?.subcategoryName || route.params?.categoryName || 'All';
+    const newCategory = route.params?.categoryName || 'All';
     if (newCategory !== selectedCategory) {
       setSelectedCategory(newCategory);
     }
