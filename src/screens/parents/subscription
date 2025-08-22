@@ -1,0 +1,84 @@
+<View style={styles.subscriptionSection}>
+              <Text style={styles.sectionTitle}>Subscription</Text>
+              {isTrialActive ? (
+                <TouchableOpacity
+                  style={styles.subscriptionButton}
+                  onPress={handleSubscriptionPress}>
+                  <Text style={styles.subscriptionButtonText}>
+                    Purchase Subscription
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <View style={styles.subscribedContainer}>
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        gap: 10,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => refRBSheet.current.open()}>
+                      <Text style={styles.subscribedText}>Subscribed</Text>
+                      <MaterialIcons
+                        name={'visibility'}
+                        size={20}
+                        color={AppColors.gray}
+                        style={{marginBottom: 2}}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{...styles.subscribedContainer, marginTop: 10}}>
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        gap: 10,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => {
+                        Alert.alert(
+                          'Cancel Subscription',
+                          `Your plan will not be auto renewed but you can watch until ${moment(
+                            subscriptionDetails?.expiry_date,
+                          ).format('D MMMM YYYY')}. No refunds will be made.`,
+                          [
+                            {text: 'No', onPress: () => {}, style: 'cancel'},
+                            {
+                              text: 'Yes',
+                              onPress: () =>
+                                Linking.openURL(
+                                  'https://play.google.com/store/account/subscriptions',
+                                ),
+                            },
+                          ],
+                          {cancelable: false},
+                        );
+                      }}>
+                      <Text style={{...styles.subscribedText, color: 'red'}}>
+                        Cancel Subscription
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* <Text style={styles.validTillText}>
+                  Valid till - {subscriptionValidTill}
+                </Text> */}
+                  </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      Linking.openURL('https://timesride.com/wisetube/faqs/')
+                    }
+                    style={{alignSelf: 'center' , marginTop:20}}>
+                    <Text style={styles.signupPrompt}>
+                      <Text
+                        style={{
+                          color: AppColors.theme,
+                          fontFamily: AppFonts.SemiBold,
+                          textDecorationLine: 'underline',
+                        }}>
+                        WiseTube Help Center
+                      </Text>
+                    </Text>
+                     <Text style={{...styles.signupLink , textDecorationLine:'underline',textAlign:'center' , color:AppColors.theme ,fontFamily: AppFonts.SemiBold,}}>Help & FAQs</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>

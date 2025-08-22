@@ -390,7 +390,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#9370db" />
+      <StatusBar barStyle="light-content" backgroundColor="#4B0082" />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -458,31 +458,41 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
             <Text style={styles.googleButtonText}>Login with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setModalVisible(true)}>
-            <Text style={styles.linkText}>Forgot Password?</Text>
-          </TouchableOpacity>
-          <Text style={styles.signupPrompt}>Create new account? </Text>
-          <TouchableOpacity onPress={handleSignup}>
-            <Text style={styles.signupPrompt}>
-              <Text style={styles.signupLink}>Sign Up</Text>
+          <View style={{alignItems: 'flex-end'}}>
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
+              <Text style={[styles.linkText, {fontSize: 12, color: 'grey'}]}>
+                Forgot Password?
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.signupPrompt}>
+            Create new account?{' '}
+            <Text style={styles.signupLink} onPress={handleSignup}>
+              Sign Up
             </Text>
-          </TouchableOpacity>
+          </Text>
+
           <TouchableOpacity
             onPress={() =>
               Linking.openURL('https://timesride.com/wisetube/faqs/')
-            }>
-            <Text style={styles.signupPrompt}>
-              <Text
-                style={{...styles.signupLink, textDecorationLine: 'underline'}}>
-                WiseTube Help Center
-              </Text>
-            </Text>
+            }
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: 20,
+            }}>
             <Text
               style={{
                 ...styles.signupLink,
                 textDecorationLine: 'underline',
-                textAlign: 'center',
+                marginRight: 8,
               }}>
+              WiseTube Help Center
+            </Text>
+            <Text
+              style={{...styles.signupLink, textDecorationLine: 'underline'}}>
               Help & FAQs
             </Text>
           </TouchableOpacity>
@@ -566,7 +576,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#9370db',
+    backgroundColor: '#F4F4F6', // Light neutral background
   },
   scrollContainer: {
     justifyContent: 'center',
@@ -581,93 +591,122 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
+    borderWidth: 3,
+    borderColor: '#4B0082',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 6,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     marginBottom: 15,
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: 12,
     elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   inputContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     marginBottom: 15,
     paddingHorizontal: 15,
     paddingVertical: 10,
-    elevation: 4,
-    justifyContent: 'space-between',
+    elevation: 3,
     flexDirection: 'row',
+    alignItems: 'center',
   },
   input: {
+    flex: 1,
     height: 40,
     fontSize: 16,
+    color: '#333',
   },
   loginButton: {
     backgroundColor: '#4B0082',
-    padding: 12,
-    borderRadius: 10,
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
     marginTop: 20,
+    shadowColor: '#4B0082',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
   },
   loginButtonText: {
     color: '#fff',
     fontSize: 16,
     fontFamily: AppFonts.SemiBold,
+    letterSpacing: 0.5,
   },
   linkText: {
-    color: '#FFD700',
+    color: '#4B0082',
     textAlign: 'center',
     marginTop: 15,
-    fontSize: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    fontSize: 15,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
     alignSelf: 'center',
     fontFamily: AppFonts.SemiBold,
   },
-
   signupPrompt: {
-    color: '#FFFFFF',
+    color: '#555',
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 15,
     marginTop: 20,
     fontFamily: AppFonts.SemiBold,
   },
   signupLink: {
-    color: '#FFD700',
+    color: '#4B0082',
     fontFamily: AppFonts.SemiBold,
   },
   modalContainer: {
-    backgroundColor: 'white',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     padding: 20,
-    paddingTop: 50, // <-- ADD THIS!
+    paddingTop: 50,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
   fpInput: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: '#DDD',
     borderWidth: 1,
     marginBottom: 10,
     paddingHorizontal: 10,
-    borderRadius: 5,
+    borderRadius: 8,
+    backgroundColor: '#FAFAFA',
   },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#DB4437', // Google red
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: '#DB4437',
+    paddingVertical: 12,
+    borderRadius: 14,
     marginTop: 12,
-    elevation: 1,
+    elevation: 3,
+    shadowColor: '#DB4437',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
   googleButtonText: {
     color: '#fff',
     fontSize: 16,
     fontFamily: AppFonts.SemiBold,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 0, // small padding from bottom
   },
 });
 

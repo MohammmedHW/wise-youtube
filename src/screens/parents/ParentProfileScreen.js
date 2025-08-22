@@ -417,90 +417,7 @@ const ParentProfileScreen = () => {
               )}
             </View>
 
-            <View style={styles.subscriptionSection}>
-              <Text style={styles.sectionTitle}>Subscription</Text>
-              {isTrialActive ? (
-                <TouchableOpacity
-                  style={styles.subscriptionButton}
-                  onPress={handleSubscriptionPress}>
-                  <Text style={styles.subscriptionButtonText}>
-                    Purchase Subscription
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <>
-                  <View style={styles.subscribedContainer}>
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: 'row',
-                        gap: 10,
-                        alignItems: 'center',
-                      }}
-                      onPress={() => refRBSheet.current.open()}>
-                      <Text style={styles.subscribedText}>Subscribed</Text>
-                      <MaterialIcons
-                        name={'visibility'}
-                        size={20}
-                        color={AppColors.gray}
-                        style={{marginBottom: 2}}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  <View style={{...styles.subscribedContainer, marginTop: 10}}>
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: 'row',
-                        gap: 10,
-                        alignItems: 'center',
-                      }}
-                      onPress={() => {
-                        Alert.alert(
-                          'Cancel Subscription',
-                          `Your plan will not be auto renewed but you can watch until ${moment(
-                            subscriptionDetails?.expiry_date,
-                          ).format('D MMMM YYYY')}. No refunds will be made.`,
-                          [
-                            {text: 'No', onPress: () => {}, style: 'cancel'},
-                            {
-                              text: 'Yes',
-                              onPress: () =>
-                                Linking.openURL(
-                                  'https://play.google.com/store/account/subscriptions',
-                                ),
-                            },
-                          ],
-                          {cancelable: false},
-                        );
-                      }}>
-                      <Text style={{...styles.subscribedText, color: 'red'}}>
-                        Cancel Subscription
-                      </Text>
-                    </TouchableOpacity>
-
-                    {/* <Text style={styles.validTillText}>
-                  Valid till - {subscriptionValidTill}
-                </Text> */}
-                  </View>
-                  <TouchableOpacity
-                    onPress={() =>
-                      Linking.openURL('https://timesride.com/wisetube/faqs/')
-                    }
-                    style={{alignSelf: 'center' , marginTop:20}}>
-                    <Text style={styles.signupPrompt}>
-                      <Text
-                        style={{
-                          color: AppColors.theme,
-                          fontFamily: AppFonts.SemiBold,
-                          textDecorationLine: 'underline',
-                        }}>
-                        WiseTube Help Center
-                      </Text>
-                    </Text>
-                     <Text style={{...styles.signupLink , textDecorationLine:'underline',textAlign:'center' , color:AppColors.theme ,fontFamily: AppFonts.SemiBold,}}>Help & FAQs</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
+            
 
             {showModal && (
               <View style={styles.modalOverlay}>
@@ -565,14 +482,23 @@ const ParentProfileScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#F5F7FA'},
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FB', // softer, modern background
+  },
   profileSection: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 30,
+    marginTop: 50,
+    marginBottom: 35,
   },
   avatarShadow: {
-    padding: 6,
+    padding: 8,
+    backgroundColor: '#fff',
+    borderRadius: 80,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
   avatar: {
     width: 120,
@@ -580,47 +506,48 @@ const styles = StyleSheet.create({
     borderRadius: 60,
   },
   nameText: {
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: AppFonts.Bold,
-    marginTop: 15,
-    color: '#333',
+    marginTop: 18,
+    color: '#222',
   },
   usernameText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#777',
-    marginTop: 5,
+    marginTop: 4,
     fontFamily: AppFonts.Medium,
   },
   pinSection: {
-    marginHorizontal: 25,
+    marginHorizontal: 20,
     backgroundColor: '#fff',
     padding: 20,
-    borderRadius: 20,
+    borderRadius: 18,
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowOffset: {width: 0, height: 3},
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
     elevation: 3,
   },
   sectionTitle: {
     fontSize: 18,
     fontFamily: AppFonts.SemiBold,
-    marginBottom: 20,
+    marginBottom: 18,
     color: AppColors.theme,
     textAlign: 'center',
   },
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#ddd',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    backgroundColor: '#F0F2F5',
+    backgroundColor: '#F9FAFB',
     marginBottom: 15,
   },
   icon: {
-    marginRight: 8,
+    marginRight: 10,
+    tintColor: '#888',
   },
   pinInput: {
     flex: 1,
@@ -630,20 +557,25 @@ const styles = StyleSheet.create({
   },
   pinButton: {
     backgroundColor: AppColors.theme,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
+    elevation: 3,
+    shadowColor: AppColors.theme,
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
   pinButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 17,
     fontFamily: AppFonts.SemiBold,
   },
   forgotText: {
     textAlign: 'center',
-    color: '#007BFF',
+    color: '#6C63FF',
     fontSize: 14,
     fontFamily: AppFonts.Regular,
+    marginTop: 12,
   },
   modalOverlay: {
     position: 'absolute',
@@ -651,7 +583,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -659,30 +591,31 @@ const styles = StyleSheet.create({
     width: '85%',
     backgroundColor: '#fff',
     padding: 20,
-    borderRadius: 15,
+    borderRadius: 16,
     elevation: 6,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: AppFonts.SemiBold,
     color: AppColors.theme,
     marginBottom: 15,
     textAlign: 'center',
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    borderRadius: 8,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    borderRadius: 10,
     marginBottom: 15,
-    fontSize: 16,
+    fontSize: 15,
+    backgroundColor: '#F9FAFB',
   },
   modalButton: {
     backgroundColor: AppColors.theme,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   trialquote: {
     textAlign: 'center',
@@ -691,57 +624,59 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: AppFonts.SemiBold,
   },
   modalClose: {
     textAlign: 'center',
     marginTop: 10,
-    color: '#555',
+    color: '#666',
     fontSize: 14,
   },
   subscriptionSection: {
     marginTop: 20,
-    marginHorizontal: 25,
-    padding: 15,
+    marginHorizontal: 20,
+    padding: 18,
     backgroundColor: '#fff',
-    borderRadius: 15,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,marginBottom:20
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
+    marginBottom: 20,
   },
   subscriptionButton: {
     backgroundColor: AppColors.orange,
-    padding: 15,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 10,
+    shadowColor: AppColors.orange,
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
   },
   subscriptionButtonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: AppFonts.SemiBold,
   },
   subscribedContainer: {
-    padding: 15,
-    borderRadius: 8,
-    backgroundColor: '#F0F2F5',
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#F4F6F8',
     alignItems: 'center',
   },
   subscribedText: {
     color: AppColors.orange,
     fontSize: 16,
-    fontFamily: AppFonts.Regular,
+    fontFamily: AppFonts.Medium,
   },
   validTillText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#888',
     marginTop: 4,
   },
 });
+
 
 export default ParentProfileScreen;
