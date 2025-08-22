@@ -31,13 +31,17 @@ import Icon from 'react-native-vector-icons/Ionicons'; // or Feather
 import AppColors from '../utils/AppColors';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import { getApp } from '@react-native-firebase/app';
-import { getAuth, signInWithEmailAndPassword, signOut } from '@react-native-firebase/auth';
+import {getApp} from '@react-native-firebase/app';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+} from '@react-native-firebase/auth';
 import SubscriptionService from '../services/subscriptionService';
-import { checkLoginInFirstTime, getUserByEmail } from '../services/authService';
+import {checkLoginInFirstTime, getUserByEmail} from '../services/authService';
 
 const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
-	console.log("TCL: LoginScreen -> onLoginSuccess", onLoginSuccess)
+  console.log('TCL: LoginScreen -> onLoginSuccess', onLoginSuccess);
   const [isModalVisible, setModalVisible] = useState(false);
 
   const navigation = useNavigation();
@@ -63,7 +67,8 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
   useEffect(() => {
     GoogleSignin.configure({
       // Replace this with your new Web Client ID from Google Cloud Console
-      webClientId: '380327626433-iqnmcb6uvse8dgipio6kfcr87pddq7ki.apps.googleusercontent.com',
+      webClientId:
+        '380327626433-iqnmcb6uvse8dgipio6kfcr87pddq7ki.apps.googleusercontent.com',
       // androidClientId: '380327626433-jujubpgd21ejajjtou4fk7t1nmsumo0t.apps.googleusercontent.com',
       offlineAccess: true,
       // scopes: ['https://www.googleapis.com/auth/drive'],
@@ -269,33 +274,30 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
         return;
       }
       setisLoading(true);
-      console.log('Attempting login with:', { email: userName, password });
+      console.log('Attempting login with:', {email: userName, password});
 
       // First, sign in with Firebase using new approach
       // const app = getApp();
       // const auth = getAuth(app);
       // const userCredential = await signInWithEmailAndPassword(auth, userName, password);
       // console.log('Firebase auth successful:', userCredential.user.uid);
-    //  const resssss = await  getUserByEmail(userName)
+      //  const resssss = await  getUserByEmail(userName)
 
-
-    
-
-     let showTrialAlert = false
-    //  if (resssss?.data?.last_loggedIn==null) {
-    //   showTrialAlert = true
-    //  }
+      let showTrialAlert = false;
+      //  if (resssss?.data?.last_loggedIn==null) {
+      //   showTrialAlert = true
+      //  }
       // Then proceed with your API login
       const response = await Auth.login({
         action: 'login',
         email: userName,
-        password: password
+        password: password,
       });
       console.log('Login response:', response);
-      
+
       if (response?.data?.status === 'success' && response?.data?.data?.token) {
         console.log('Login successful, storing data...');
-        
+
         // Clear any existing data first
         await AsyncStorage.multiRemove([
           'userUserName',
@@ -306,7 +308,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
           'userId',
           'role',
           'loginDate',
-          'trialStatus'
+          'trialStatus',
         ]);
 
         // Store new data
@@ -323,15 +325,15 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 
         // Check if trial status exists
         const trialData = await SubscriptionService.getSubscription(userName);
-        console.log("trialData from LoginScreen",trialData);
+        console.log('trialData from LoginScreen', trialData);
         if (!trialData) {
           // No trial data found, it will be handled by App.js
           console.log('No trial data found, will show trial screen');
-			console.log("TCL: parentLogin -> showTrialAlert", showTrialAlert)
-    }
+          console.log('TCL: parentLogin -> showTrialAlert', showTrialAlert);
+        }
 
         console.log('Data stored, calling onLoginSuccess');
-        onLoginSuccess(response.data.data ,showTrialAlert );
+        onLoginSuccess(response.data.data, showTrialAlert);
       } else {
         // If API login fails, sign out from Firebase
         const app = getApp();
@@ -341,7 +343,7 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
         Alert.alert('Error', response?.data?.message || 'Login failed');
       }
     } catch (error) {
-			console.log("TCL: parentLogin -> error", error)
+      console.log('TCL: parentLogin -> error', error);
       // If any error occurs, sign out from Firebase
       const app = getApp();
       const auth = getAuth(app);
@@ -352,12 +354,11 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
       setisLoading(false);
     }
   };
-  
 
   const handleGoogleLogin = async () => {
     try {
       const playServicesAvailable = await GoogleSignin.hasPlayServices();
-      console.log("It is here ");
+      console.log('It is here ');
 
       const userInfo = await GoogleSignin.signIn();
       const {email, givenName, familyName, id} = userInfo.data.user;
@@ -460,18 +461,30 @@ const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
           <TouchableOpacity onPress={() => setModalVisible(true)}>
             <Text style={styles.linkText}>Forgot Password?</Text>
           </TouchableOpacity>
-            <Text style={styles.signupPrompt}>Create  new account?{' '}</Text>
+          <Text style={styles.signupPrompt}>Create new account? </Text>
           <TouchableOpacity onPress={handleSignup}>
             <Text style={styles.signupPrompt}>
               <Text style={styles.signupLink}>Sign Up</Text>
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={()=>Linking.openURL('https://timesride.com/wisetube/faqs/')}>
+          <TouchableOpacity
+            onPress={() =>
+              Linking.openURL('https://timesride.com/wisetube/faqs/')
+            }>
             <Text style={styles.signupPrompt}>
-            <Text style={{...styles.signupLink , textDecorationLine:'underline'}}>WiseTube Help Center</Text>
+              <Text
+                style={{...styles.signupLink, textDecorationLine: 'underline'}}>
+                WiseTube Help Center
+              </Text>
             </Text>
-            <Text style={{...styles.signupLink , textDecorationLine:'underline',textAlign:'center'}}>Help & FAQs</Text>
-
+            <Text
+              style={{
+                ...styles.signupLink,
+                textDecorationLine: 'underline',
+                textAlign: 'center',
+              }}>
+              Help & FAQs
+            </Text>
           </TouchableOpacity>
 
           {/* ---------------- Forgot Password Modal ---------------- */}
