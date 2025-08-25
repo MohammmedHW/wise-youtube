@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useContext,
-  useCallback,
-} from 'react';
+import React, {useState, useEffect, useRef, useContext} from 'react';
 import {
   View,
   FlatList,
@@ -24,11 +18,7 @@ import {
   TouchableHighlight,
 } from 'react-native';
 import {Searchbar} from 'react-native-paper';
-import {
-  useFocusEffect,
-  useNavigation,
-  useRoute,
-} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {Playlist, YoutubeApi} from '../../services';
 import AppLoader from '../../components/AppLoader';
 import AppColors from '../../utils/AppColors';
@@ -52,7 +42,6 @@ import {AppContext} from '../../contextApi/AppContext';
 
 function HomeScreen() {
   const navigation = useNavigation();
-  const route = useRoute();
   const [videos, setVideos] = useState([]);
   const {checkTrialFirstTime, setCheckTrialFirstTime} = useContext(AppContext);
   console.log('TCL: checkTrialFirstTime', checkTrialFirstTime);
@@ -67,10 +56,7 @@ function HomeScreen() {
   const [isLocked, setIsLocked] = useState(false);
   const [pin, setPin] = useState('');
   const shakeAnim = useRef(new Animated.Value(0)).current;
-  // Get category from route params, fallback to 'All' if not provided
-  const categoryFromRoute = route.params?.categoryName || 'All';
-  console.log('categoryFromRoute', categoryFromRoute);
-  const [selectedCategory, setSelectedCategory] = useState(categoryFromRoute);
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [isSubscribedMap, setIsSubscribedMap] = useState({});
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
   const [subscribedChannels, setSubscribedChannels] = useState([]);
@@ -95,16 +81,16 @@ function HomeScreen() {
     return isFocused;
   }, [navigation]);
 
-  useEffect(() => {
-    if (checkTrialFirstTime) {
-      alert({
-        type: DropdownAlertType.Success,
-        title: 'Congratulations',
-        message: `You have unlocked free trial period of 3 days.`,
-      });
-      setCheckTrialFirstTime(null);
-    }
-  }, [checkTrialFirstTime]);
+  // useEffect(() => {
+  //   if (checkTrialFirstTime) {
+  //     alert({
+  //       type: DropdownAlertType.Success,
+  //       title: 'Congratulations',
+  //       message: `You have unlocked free trial period of 3 days.`,
+  //     });
+  //     setCheckTrialFirstTime(null);
+  //   }
+  // }, [checkTrialFirstTime]);
 
   // useFocusEffect(
   //   React.useCallback(() => {
@@ -145,17 +131,27 @@ function HomeScreen() {
     }
   };
 
-  // Update selected category when route params change
-  useEffect(() => {
-    const newCategory = route.params?.categoryName || 'All';
-    if (newCategory !== selectedCategory) {
-      setSelectedCategory(newCategory);
-    }
-  }, [route.params, selectedCategory]);
-
   useEffect(() => {
     getVideos(false, searchText, selectedCategory);
-  }, [filterType, selectedCategory, searchText]);
+  }, [filterType]);
+
+  // useEffect to get data from categories screen route
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (navigation.getState().routes[navigation.getState().index].params) {
+        const params =
+          navigation.getState().routes[navigation.getState().index].params;
+        if (params.subcategoryName) {
+          const category = params.subcategoryName;
+          console.log('category', category);
+          setSelectedCategory(category);
+          getVideos(false, '', category);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -192,7 +188,7 @@ function HomeScreen() {
     };
 
     fetchStats();
-  }, [API_KEY, channelStats, videos]);
+  }, [videos]);
 
   useEffect(() => {
     const checkSubscriptions = async () => {
@@ -262,7 +258,7 @@ function HomeScreen() {
     console.log(`TCL: Subscription toggle bypassed server. Action: ${action}`);
   };
 
-  const fetchSubscribedChannels = useCallback(async () => {
+  const fetchSubscribedChannels = async () => {
     setload(true);
 
     try {
@@ -307,18 +303,18 @@ function HomeScreen() {
     } finally {
       setload(false);
     }
-  });
+  };
 
   useFocusEffect(
     React.useCallback(() => {
       fetchSubscribedChannels();
-    }, [fetchSubscribedChannels]),
+    }, []),
   );
 
   useFocusEffect(
     React.useCallback(() => {
       fetchSubscribedChannels();
-    }, [fetchSubscribedChannels]),
+    }, []),
   );
 
   const formatCount = count => {
@@ -885,45 +881,6 @@ function HomeScreen() {
     <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
       <StatusBar backgroundColor={AppColors.white} barStyle={'dark-content'} />
       <View style={{flex: 1, backgroundColor: 'white'}}>
-        {/* Header with back button */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 10,
-            paddingVertical: 10,
-            backgroundColor: 'white',
-          }}>
-          <TouchableOpacity
-            onPress={() => {
-              console.log('Back button pressed');
-              console.log('Can go back:', navigation.canGoBack());
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                // If can't go back, navigate to HomeScreen
-                navigation.navigate('HomeScreen');
-              }
-            }}
-            style={{
-              padding: 8,
-              borderRadius: 8,
-              backgroundColor: '#f5f5f5',
-              marginRight: 10,
-            }}>
-            <Icon name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text
-            style={{
-              fontSize: 18,
-              fontFamily: AppFonts.Medium,
-              color: '#333',
-              flex: 1,
-            }}>
-            {selectedCategory === 'All' ? 'All Videos' : selectedCategory}
-          </Text>
-        </View>
-
         <Searchbar
           style={{marginHorizontal: 10, backgroundColor: 'white'}}
           placeholder="Search anything..."
