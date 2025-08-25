@@ -58,7 +58,7 @@ const ParentsBottomTabNavigator = ({onLogout}) => {
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
         },
-        tabBarActiveTintColor: '#9370DB',
+        tabBarActiveTintColor: AppColors.darkGray,
         tabBarInactiveTintColor: '#8E8E93',
         tabBarLabelStyle: {
           fontSize: 12,
@@ -131,16 +131,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   activeIconContainer: {
-    transform: [{translateY: -5}],
+    // transform: [{translateY: -5}],
   },
   activeIconWrapper: {
-    width: 45,
-    height: 45,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 25,
-    backgroundColor: '#9370DB',
-    shadowColor: '#9370DB',
+    backgroundColor: AppColors.theme,
+    shadowColor: AppColors.theme,
     shadowOffset: {
       width: 0,
       height: 4,
