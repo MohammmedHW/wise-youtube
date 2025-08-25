@@ -1,4 +1,10 @@
-import React, {useState, useEffect, useRef, useContext} from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useContext,
+  useCallback,
+} from 'react';
 import {
   View,
   FlatList,
@@ -18,12 +24,16 @@ import {
   TouchableHighlight,
 } from 'react-native';
 import {Searchbar} from 'react-native-paper';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import {Playlist, YoutubeApi} from '../../services';
 import AppLoader from '../../components/AppLoader';
 import AppColors from '../../utils/AppColors';
 import AppFonts from '../../utils/AppFonts';
-import { Linking } from 'react-native';
+import {Linking} from 'react-native';
 
 import {config} from '../../../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -42,6 +52,7 @@ import {AppContext} from '../../contextApi/AppContext';
 
 function HomeScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const [videos, setVideos] = useState([]);
   const {checkTrialFirstTime, setCheckTrialFirstTime} = useContext(AppContext);
   console.log('TCL: checkTrialFirstTime', checkTrialFirstTime);
@@ -56,7 +67,10 @@ function HomeScreen() {
   const [isLocked, setIsLocked] = useState(false);
   const [pin, setPin] = useState('');
   const shakeAnim = useRef(new Animated.Value(0)).current;
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  // Get category from route params, fallback to 'All' if not provided
+  const categoryFromRoute = route.params?.categoryName || 'All';
+  console.log('categoryFromRoute', categoryFromRoute);
+  const [selectedCategory, setSelectedCategory] = useState(categoryFromRoute);
   const [isSubscribedMap, setIsSubscribedMap] = useState({});
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
   const [subscribedChannels, setSubscribedChannels] = useState([]);
@@ -76,7 +90,7 @@ function HomeScreen() {
   };
   useEffect(() => {
     const isFocused = navigation.addListener('focus', () => {
-      checkLock()
+      checkLock();
     });
     return isFocused;
   }, [navigation]);
@@ -88,7 +102,7 @@ function HomeScreen() {
         title: 'Congratulations',
         message: `You have unlocked free trial period of 3 days.`,
       });
-      setCheckTrialFirstTime(null)
+      setCheckTrialFirstTime(null);
     }
   }, [checkTrialFirstTime]);
 
@@ -131,9 +145,17 @@ function HomeScreen() {
     }
   };
 
+  // Update selected category when route params change
+  useEffect(() => {
+    const newCategory = route.params?.categoryName || 'All';
+    if (newCategory !== selectedCategory) {
+      setSelectedCategory(newCategory);
+    }
+  }, [route.params, selectedCategory]);
+
   useEffect(() => {
     getVideos(false, searchText, selectedCategory);
-  }, [filterType]);
+  }, [filterType, selectedCategory, searchText]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -170,7 +192,7 @@ function HomeScreen() {
     };
 
     fetchStats();
-  }, [videos]);
+  }, [API_KEY, channelStats, videos]);
 
   useEffect(() => {
     const checkSubscriptions = async () => {
@@ -212,36 +234,35 @@ function HomeScreen() {
   };
 
   const handleSubscriptionToggle = channelId => {
-  Vibration.vibrate(100);
+    Vibration.vibrate(100);
 
-  // Optimistically update UI
-  const action = subscribedChannels.includes(channelId)
-    ? 'unsubscribe'
-    : 'subscribe';
+    // Optimistically update UI
+    const action = subscribedChannels.includes(channelId)
+      ? 'unsubscribe'
+      : 'subscribe';
 
-  const updatedSubscribedChannels = [...subscribedChannels];
+    const updatedSubscribedChannels = [...subscribedChannels];
 
-  if (action === 'subscribe') {
-    updatedSubscribedChannels.push(channelId);
-  } else {
-    const index = updatedSubscribedChannels.indexOf(channelId);
-    if (index !== -1) updatedSubscribedChannels.splice(index, 1);
-  }
+    if (action === 'subscribe') {
+      updatedSubscribedChannels.push(channelId);
+    } else {
+      const index = updatedSubscribedChannels.indexOf(channelId);
+      if (index !== -1) updatedSubscribedChannels.splice(index, 1);
+    }
 
-  setSubscribedChannels(updatedSubscribedChannels);
+    setSubscribedChannels(updatedSubscribedChannels);
 
-  // Show success message without server check
-  alert({
-    type: DropdownAlertType.Success,
-    title: 'Success',
-    message: `You have successfully ${action}d the channel`,
-  });
+    // Show success message without server check
+    alert({
+      type: DropdownAlertType.Success,
+      title: 'Success',
+      message: `You have successfully ${action}d the channel`,
+    });
 
-  console.log(`TCL: Subscription toggle bypassed server. Action: ${action}`);
-};
+    console.log(`TCL: Subscription toggle bypassed server. Action: ${action}`);
+  };
 
-
-  const fetchSubscribedChannels = async () => {
+  const fetchSubscribedChannels = useCallback(async () => {
     setload(true);
 
     try {
@@ -286,18 +307,18 @@ function HomeScreen() {
     } finally {
       setload(false);
     }
-  };
+  });
 
   useFocusEffect(
     React.useCallback(() => {
       fetchSubscribedChannels();
-    }, []),
+    }, [fetchSubscribedChannels]),
   );
 
   useFocusEffect(
     React.useCallback(() => {
       fetchSubscribedChannels();
-    }, []),
+    }, [fetchSubscribedChannels]),
   );
 
   const formatCount = count => {
@@ -864,6 +885,45 @@ function HomeScreen() {
     <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
       <StatusBar backgroundColor={AppColors.white} barStyle={'dark-content'} />
       <View style={{flex: 1, backgroundColor: 'white'}}>
+        {/* Header with back button */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 10,
+            paddingVertical: 10,
+            backgroundColor: 'white',
+          }}>
+          <TouchableOpacity
+            onPress={() => {
+              console.log('Back button pressed');
+              console.log('Can go back:', navigation.canGoBack());
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                // If can't go back, navigate to HomeScreen
+                navigation.navigate('HomeScreen');
+              }
+            }}
+            style={{
+              padding: 8,
+              borderRadius: 8,
+              backgroundColor: '#f5f5f5',
+              marginRight: 10,
+            }}>
+            <Icon name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text
+            style={{
+              fontSize: 18,
+              fontFamily: AppFonts.Medium,
+              color: '#333',
+              flex: 1,
+            }}>
+            {selectedCategory === 'All' ? 'All Videos' : selectedCategory}
+          </Text>
+        </View>
+
         <Searchbar
           style={{marginHorizontal: 10, backgroundColor: 'white'}}
           placeholder="Search anything..."
@@ -873,7 +933,7 @@ function HomeScreen() {
           returnKeyType="search"
           value={searchText}
         />
-        <View>
+        {/* <View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -925,7 +985,7 @@ function HomeScreen() {
               );
             })}
           </ScrollView>
-        </View>
+        </View> */}
         <View style={{marginHorizontal: 10, marginBottom: 15, marginTop: 5}}>
           <View
             style={{

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   StyleSheet,
   View,
@@ -17,10 +17,10 @@ import {
 } from 'react-native';
 // import { RadioButton } from "react-native-paper";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Auth, Users } from '../services';
-import { useNavigation } from '@react-navigation/native';
+import {Auth, Users} from '../services';
+import {useNavigation} from '@react-navigation/native';
 import Modal from 'react-native-modal';
-import { KeyboardAvoidingView } from 'react-native';
+import {KeyboardAvoidingView} from 'react-native';
 import AppLoader from '../components/AppLoader';
 import AppFonts from '../utils/AppFonts';
 import DropdownAlert, {
@@ -30,14 +30,18 @@ import DropdownAlert, {
 import Icon from 'react-native-vector-icons/Ionicons'; // or Feather
 import AppColors from '../utils/AppColors';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { getApp } from '@react-native-firebase/app';
-import { getAuth, signInWithEmailAndPassword, signOut } from '@react-native-firebase/auth';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import {getApp} from '@react-native-firebase/app';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+} from '@react-native-firebase/auth';
 import SubscriptionService from '../services/subscriptionService';
-import { checkLoginInFirstTime, getUserByEmail } from '../services/authService';
+import {checkLoginInFirstTime, getUserByEmail} from '../services/authService';
 
-const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
-  console.log("TCL: LoginScreen -> onLoginSuccess", onLoginSuccess)
+const LoginScreen = ({onLoginSuccess, setIsLogInScreen}) => {
+  console.log('TCL: LoginScreen -> onLoginSuccess', onLoginSuccess);
   const [isModalVisible, setModalVisible] = useState(false);
 
   const navigation = useNavigation();
@@ -63,7 +67,8 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
   useEffect(() => {
     GoogleSignin.configure({
       // Replace this with your new Web Client ID from Google Cloud Console
-      webClientId: '380327626433-iqnmcb6uvse8dgipio6kfcr87pddq7ki.apps.googleusercontent.com',
+      webClientId:
+        '380327626433-iqnmcb6uvse8dgipio6kfcr87pddq7ki.apps.googleusercontent.com',
       // androidClientId: '380327626433-jujubpgd21ejajjtou4fk7t1nmsumo0t.apps.googleusercontent.com',
       offlineAccess: true,
       // scopes: ['https://www.googleapis.com/auth/drive'],
@@ -157,7 +162,7 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
     }
     try {
       setisLoading(true);
-      const result = await Auth.generateOtp({ email: fpemail });
+      const result = await Auth.generateOtp({email: fpemail});
       if ((result && result.status === 200) || result.status === 201) {
         if (result.data.message === 'OTP sent successfully') {
           alert({
@@ -196,7 +201,7 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
     try {
       setisLoading(true);
 
-      const res = await Auth.verifyOtp({ email: fpemail, otp: fpotp });
+      const res = await Auth.verifyOtp({email: fpemail, otp: fpotp});
       if ((res && res.status === 200) || res.status === 201) {
         if (res.data.message === 'OTP verified successfully') {
           alert({
@@ -269,7 +274,7 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
         return;
       }
       setisLoading(true);
-      console.log('Attempting login with:', { email: userName, password });
+      console.log('Attempting login with:', {email: userName, password});
 
       // First, sign in with Firebase using new approach
       // const app = getApp();
@@ -278,10 +283,7 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
       // console.log('Firebase auth successful:', userCredential.user.uid);
       //  const resssss = await  getUserByEmail(userName)
 
-
-
-
-      let showTrialAlert = false
+      let showTrialAlert = false;
       //  if (resssss?.data?.last_loggedIn==null) {
       //   showTrialAlert = true
       //  }
@@ -289,7 +291,7 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
       const response = await Auth.login({
         action: 'login',
         email: userName,
-        password: password
+        password: password,
       });
       console.log('Login response:', response);
 
@@ -306,7 +308,7 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
           'userId',
           'role',
           'loginDate',
-          'trialStatus'
+          'trialStatus',
         ]);
 
         // Store new data
@@ -323,11 +325,11 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
 
         // Check if trial status exists
         const trialData = await SubscriptionService.getSubscription(userName);
-        console.log("trialData from LoginScreen", trialData);
+        console.log('trialData from LoginScreen', trialData);
         if (!trialData) {
           // No trial data found, it will be handled by App.js
           console.log('No trial data found, will show trial screen');
-          console.log("TCL: parentLogin -> showTrialAlert", showTrialAlert)
+          console.log('TCL: parentLogin -> showTrialAlert', showTrialAlert);
         }
 
         console.log('Data stored, calling onLoginSuccess');
@@ -341,7 +343,7 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
         Alert.alert('Error', response?.data?.message || 'Login failed');
       }
     } catch (error) {
-      console.log("TCL: parentLogin -> error", error)
+      console.log('TCL: parentLogin -> error', error);
       // If any error occurs, sign out from Firebase
       const app = getApp();
       const auth = getAuth(app);
@@ -353,15 +355,14 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
     }
   };
 
-
   const handleGoogleLogin = async () => {
     try {
       const playServicesAvailable = await GoogleSignin.hasPlayServices();
-      console.log("It is here ");
+      console.log('It is here ');
 
       const userInfo = await GoogleSignin.signIn();
-      const { email, givenName, familyName, id } = userInfo.data.user;
-      const { idToken } = userInfo.data;
+      const {email, givenName, familyName, id} = userInfo.data.user;
+      const {idToken} = userInfo.data;
       await AsyncStorage.multiSet([
         ['userUserName', email],
         ['userParentFirstName', givenName],
@@ -393,7 +394,7 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}>
+        style={{flex: 1}}>
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled">
@@ -413,7 +414,7 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
           </View>
 
           <View style={styles.inputContainer}>
-            <View style={{ flex: 0.8 }}>
+            <View style={{flex: 0.8}}>
               <TextInput
                 style={styles.input}
                 placeholder="Password"
@@ -452,19 +453,18 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
               name="google"
               size={22}
               color="#fff"
-              style={{ marginRight: 10 }}
+              style={{marginRight: 10}}
             />
             <Text style={styles.googleButtonText}>Login with Google</Text>
           </TouchableOpacity>
 
-          <View style={{ alignItems: 'flex-end' }}>
+          <View style={{alignItems: 'flex-end'}}>
             <TouchableOpacity onPress={() => setModalVisible(true)}>
-              <Text style={[styles.linkText, { fontSize: 12, color: 'grey' }]}>
+              <Text style={[styles.linkText, {fontSize: 12, color: 'grey'}]}>
                 Forgot Password?
               </Text>
             </TouchableOpacity>
           </View>
-
 
           <Text style={styles.signupPrompt}>
             Create new account?{' '}
@@ -474,23 +474,34 @@ const LoginScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
           </Text>
 
           <TouchableOpacity
-            onPress={() => Linking.openURL('https://timesride.com/wisetube/faqs/')}
-            style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center',marginTop:20 }}
-          >
-            <Text style={{ ...styles.signupLink, textDecorationLine: 'underline', marginRight: 8 }}>
+            onPress={() =>
+              Linking.openURL('https://timesride.com/wisetube/faqs/')
+            }
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: 20,
+            }}>
+            <Text
+              style={{
+                ...styles.signupLink,
+                textDecorationLine: 'underline',
+                marginRight: 8,
+              }}>
               WiseTube Help Center
             </Text>
-            <Text style={{ ...styles.signupLink, textDecorationLine: 'underline' }}>
+            <Text
+              style={{...styles.signupLink, textDecorationLine: 'underline'}}>
               Help & FAQs
             </Text>
           </TouchableOpacity>
-
 
           {/* ---------------- Forgot Password Modal ---------------- */}
           <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
             <View style={styles.modalContainer}>
               <TouchableOpacity
-                style={{ position: 'absolute', top: 10, right: 10, zIndex: 1 }}
+                style={{position: 'absolute', top: 10, right: 10, zIndex: 1}}
                 onPress={toggleModal}>
                 <Icon name="close" size={24} color="#000" />
               </TouchableOpacity>
@@ -583,7 +594,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#4B0082',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: {width: 0, height: 3},
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 6,
@@ -692,13 +703,11 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.SemiBold,
   },
   footerLinks: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginBottom: 0, // small padding from bottom
-},
-
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 0, // small padding from bottom
+  },
 });
-
 
 export default LoginScreen;

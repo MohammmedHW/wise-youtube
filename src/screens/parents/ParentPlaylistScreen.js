@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Playlist } from '../../services';
@@ -48,6 +49,25 @@ export default function ParentPlaylistScreen() {
     }, [])
   );
 
+  // ✅ API to fetch videos of a playlist
+  const fetchPlaylistDetails = async (playlistId) => {
+    try {
+      const response = await fetch(
+        'http://timesride.com/custom/GetPlayListVideos.php',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playlist_id: playlistId.toString() }),
+        }
+      );
+      const data = await response.json();
+      return data;
+    } catch (e) {
+      console.log('Error fetching playlist details:', e);
+      return null;
+    }
+  };
+
   const fetchPlaylists = async () => {
     setLoading(true);
     try {
@@ -56,8 +76,22 @@ export default function ParentPlaylistScreen() {
         Alert.alert('Error', 'Email not found in storage');
         return;
       }
+
       const data = await Playlist.getAllPlaylist(email);
-      setPlaylists(data?.data || []);
+      let list = data?.data || [];
+
+      // Fetch details (videos) for each playlist
+      const detailedList = await Promise.all(
+        list.map(async (p) => {
+          const details = await fetchPlaylistDetails(p.playlist_id);
+          if (details?.status === 'success') {
+            return { ...p, videos: details.videos || [] };
+          }
+          return { ...p, videos: [] };
+        })
+      );
+
+      setPlaylists(detailedList);
 
       const storedIcons = await AsyncStorage.getItem('playlistIcons');
       if (storedIcons) setIconMap(JSON.parse(storedIcons));
@@ -148,8 +182,19 @@ export default function ParentPlaylistScreen() {
     }
   };
 
+  // ✅ Extract YouTube ID
+  const getYouTubeId = (url) => {
+    const match = url?.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:\?|&|$)/);
+    return match ? match[1] : null;
+  };
+
   const renderItem = ({ item }) => {
-    const iconName = iconMap[item.playlist_id] || 'folder-outline';
+    const videoCount = item.videos?.length || 0;
+    const firstVideo = item.videos?.[0];
+    const videoId = firstVideo ? getYouTubeId(firstVideo.video_link) : null;
+    const thumbnailUrl = videoId
+      ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+      : null;
 
     return (
       <TouchableOpacity
@@ -159,14 +204,18 @@ export default function ParentPlaylistScreen() {
             playlistName: item.playlist_Name,
           });
         }}
-        delayLongPress={2000} // 2 seconds hold
+        delayLongPress={2000}
         onLongPress={() => {
           Alert.alert(
             'Delete Playlist',
             `Are you sure you want to delete "${item.playlist_Name}"?`,
             [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: () => deletePlaylist(item.playlist_id) },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => deletePlaylist(item.playlist_id),
+              },
             ]
           );
         }}
@@ -174,10 +223,19 @@ export default function ParentPlaylistScreen() {
         activeOpacity={0.8}
       >
         <View style={styles.iconWrapper}>
-          <Ionicons name={iconName} size={50} color="yellow" />
+          {thumbnailUrl ? (
+            <Image
+              source={{ uri: thumbnailUrl }}
+              style={{ width: 80, height: 80, borderRadius: 10 }}
+            />
+          ) : (
+            <Ionicons name="folder-outline" size={50} color="yellow" />
+          )}
         </View>
-        <Text style={styles.title} numberOfLines={1}>{item.playlist_Name}</Text>
-        <Text style={styles.count}>{item.video_count || 0} videos</Text>
+        <Text style={styles.title} numberOfLines={1}>
+          {item.playlist_Name}
+        </Text>
+        <Text style={styles.count}>{videoCount} videos</Text>
       </TouchableOpacity>
     );
   };
@@ -189,7 +247,9 @@ export default function ParentPlaylistScreen() {
       ) : playlists.length > 0 ? (
         <FlatList
           data={playlists}
-          keyExtractor={(item, index) => item.playlist_id?.toString() || index.toString()}
+          keyExtractor={(item, index) =>
+            item.playlist_id?.toString() || index.toString()
+          }
           renderItem={renderItem}
           numColumns={2}
           columnWrapperStyle={{ justifyContent: 'space-between' }}
@@ -205,7 +265,11 @@ export default function ParentPlaylistScreen() {
         />
       ) : (
         <ScrollView
-          contentContainerStyle={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+          contentContainerStyle={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -219,7 +283,10 @@ export default function ParentPlaylistScreen() {
         </ScrollView>
       )}
 
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setModalVisible(true)}
+      >
         <Icon name="add" size={32} color="#fff" />
       </TouchableOpacity>
 
@@ -235,22 +302,6 @@ export default function ParentPlaylistScreen() {
               onChangeText={setPlaylistName}
             />
 
-            <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>Select Icon:</Text>
-            <View style={styles.iconGrid}>
-              {ICON_OPTIONS.map((icon) => (
-                <TouchableOpacity
-                  key={icon}
-                  style={[
-                    styles.iconOption,
-                    selectedIcon === icon && styles.iconSelected,
-                  ]}
-                  onPress={() => setSelectedIcon(icon)}
-                >
-                  <Ionicons name={icon} size={28} color={AppColors.theme} />
-                </TouchableOpacity>
-              ))}
-            </View>
-
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: '#ccc' }]}
@@ -258,7 +309,10 @@ export default function ParentPlaylistScreen() {
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={createPlaylist}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={createPlaylist}
+              >
                 <Text style={styles.modalButtonText}>Create</Text>
               </TouchableOpacity>
             </View>
@@ -281,13 +335,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'black',
     backgroundColor: '#fafafa',
-    minHeight: 160, // Increased tile height
+    minHeight: 160,
   },
   iconWrapper: {
-    borderRadius: 50,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'black',
+    borderRadius: 10,
+    padding: 8,
     marginBottom: 12,
   },
   title: {
@@ -329,22 +381,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     marginBottom: 16,
-  },
-  iconGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 16,
-  },
-  iconOption: {
-    padding: 8,
-    margin: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  iconSelected: {
-    backgroundColor: '#FFF9E5',
-    borderColor: AppColors.theme,
   },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between' },
   modalButton: {

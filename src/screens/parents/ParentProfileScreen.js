@@ -424,25 +424,7 @@ const ParentProfileScreen = () => {
                 <View style={styles.modalBox}>
                   <Text style={styles.modalTitle}>Verify OTP</Text>
 
-                  {!otpVerified && (
-                    <>
-                      <TextInput
-                        style={styles.modalInput}
-                        placeholder="Enter OTP"
-                        value={otp}
-                        onChangeText={setOtp}
-                        keyboardType="number-pad"
-                        maxLength={6}
-                      />
-                      <TouchableOpacity
-                        onPress={verifyOtp}
-                        style={styles.modalButton}>
-                        <Text style={styles.modalButtonText}>
-                          {loading ? 'Verifying...' : 'Verify OTP'}
-                        </Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
+                  a
 
                   {otpVerified && (
                     <>

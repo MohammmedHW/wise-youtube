@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 export const config = {
   cli: {
     url: 'http://timesride.com/custom',
