@@ -550,11 +550,11 @@ function HomeScreen() {
             padding: 10,
             marginVertical: 5,
             marginHorizontal: 10,
-            backgroundColor: '#f9f9f9',
-            borderRadius: 8,
+            // backgroundColor: '#f9f9f9',
+            // borderRadius: 8,
             alignItems: 'center',
-            borderWidth: 1,
-            borderColor: '#ddd',
+            // borderWidth: 1,
+            // borderColor: '#ddd',
           }}
           onPress={() =>
             navigation.navigate('Channel', {channelId: item.id.channelId})
@@ -586,24 +586,25 @@ function HomeScreen() {
 
           <TouchableOpacity
             style={{
-              backgroundColor: isSubscribed ? AppColors.theme : '#ccc',
+              backgroundColor: isSubscribed ? AppColors.theme : '#f0f0f0',
               paddingVertical: 4,
               paddingHorizontal: 8,
-              borderRadius: 20,
+              borderRadius: 10,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
+              marginLeft: 15,
             }}
             onPress={() => handleSubscriptionToggle(item.id.channelId)}>
-            <MaterialIcons
+            {/* <MaterialIcons
               name={isSubscribed ? 'notifications' : 'notifications-none'}
               size={14}
               color="#fff"
               style={{marginRight: 6}}
-            />
+            /> */}
             <Text
               style={{
-                color: '#fff',
+                color: AppColors.darkGray,
                 fontSize: 10,
                 fontFamily: AppFonts.Medium,
               }}>
@@ -881,15 +882,6 @@ function HomeScreen() {
     <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
       <StatusBar backgroundColor={AppColors.white} barStyle={'dark-content'} />
       <View style={{flex: 1, backgroundColor: 'white'}}>
-        <Searchbar
-          style={{marginHorizontal: 10, backgroundColor: 'white'}}
-          placeholder="Search anything..."
-          onChangeText={setSearchText}
-          onClearIconPress={() => setSearchText('')}
-          onSubmitEditing={onSearchSubmit}
-          returnKeyType="search"
-          value={searchText}
-        />
         {/* <View>
           <ScrollView
             horizontal
@@ -943,7 +935,10 @@ function HomeScreen() {
             })}
           </ScrollView>
         </View> */}
-        <View style={{marginHorizontal: 10, marginBottom: 15, marginTop: 5}}>
+        <View style={{marginHorizontal: 15, marginTop: 15, backgroundColor: AppColors.theme, borderRadius: 15, paddingVertical: 5}}>
+            <Text style={{fontFamily: AppFonts.Bold, fontSize: 24, color: 'white', textAlign: 'center'}}>{selectedCategory}</Text>
+        </View>
+        <View style={{marginHorizontal: 10, marginVertical: 15}}>
           <View
             style={{
               flexDirection: 'row',
@@ -973,7 +968,7 @@ function HomeScreen() {
                   style={{
                     color: filterType === type ? 'white' : '#333',
                     fontWeight: '500',
-                    fontSize: 14,
+                    fontSize: 16,
                   }}>
                   {type === 'video'
                     ? 'Videos'
@@ -985,6 +980,29 @@ function HomeScreen() {
             ))}
           </View>
         </View>
+        <Searchbar
+        style={{
+            marginHorizontal: 20,
+            backgroundColor: '#f0f0f0',
+            borderRadius: 15,
+            height: 45,
+        }}
+        inputStyle={{
+            fontSize: 14,
+            fontFamily: AppFonts.Light,
+            alignSelf: 'center'
+        }}
+        contentStyle={{
+            height: 45,
+            alignSelf: 'center',
+        }}
+        placeholder={`Search within ${selectedCategory}...`}
+        onChangeText={setSearchText}
+        onClearIconPress={() => setSearchText('')}
+        onSubmitEditing={onSearchSubmit}
+        returnKeyType="search"
+        value={searchText}
+        />
         {load ? (
           <ActivityIndicator
             size="large"
