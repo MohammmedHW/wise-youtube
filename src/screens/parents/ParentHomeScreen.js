@@ -66,6 +66,7 @@ function HomeScreen() {
 
   const [playlists, setPlaylists] = useState([]);
   const [selectedVideoId, setSelectedVideoId] = useState(null);
+  const [playlistDetails, setPlaylistDetails] = useState({});
 
   const API_KEY = config.cli.api_key;
   let alert = _data => new Promise(res => res);
@@ -74,9 +75,61 @@ function HomeScreen() {
     const isLocked = await AsyncStorage.getItem('homeLocked');
     setIsLocked(isLocked === 'true');
   };
+
+  const saveFilterType = async type => {
+    try {
+      await AsyncStorage.setItem('parentHomeFilterType', type);
+    } catch (error) {
+      console.error('Error saving filter type:', error);
+    }
+  };
+
+  const loadFilterType = async () => {
+    try {
+      const savedFilterType = await AsyncStorage.getItem(
+        'parentHomeFilterType',
+      );
+      if (savedFilterType && savedFilterType !== filterType) {
+        setFilterType(savedFilterType);
+        return savedFilterType;
+      }
+      return filterType;
+    } catch (error) {
+      console.error('Error loading filter type:', error);
+      return filterType;
+    }
+  };
+
+  const fetchPlaylistDetails = async playlistIds => {
+    try {
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/playlists?part=contentDetails&id=${playlistIds.join(
+          ',',
+        )}&key=${API_KEY}`,
+      );
+      const data = await response.json();
+
+      const details = {};
+      data.items?.forEach(item => {
+        details[item.id] = {
+          itemCount: item.contentDetails.itemCount,
+        };
+      });
+
+      setPlaylistDetails(prev => ({...prev, ...details}));
+    } catch (error) {
+      console.error('Error fetching playlist details:', error);
+    }
+  };
   useEffect(() => {
     const isFocused = navigation.addListener('focus', () => {
       checkLock();
+      loadFilterType().then(savedType => {
+        // If we loaded a different filter type, fetch data for that type
+        if (savedType !== filterType) {
+          getVideos(false, searchText, selectedCategory);
+        }
+      });
     });
     return isFocused;
   }, [navigation]);
@@ -134,6 +187,19 @@ function HomeScreen() {
   useEffect(() => {
     getVideos(false, searchText, selectedCategory);
   }, [filterType]);
+
+  // Fetch playlist details when videos change and filterType is playlist
+  useEffect(() => {
+    if (filterType === 'playlist' && videos.length > 0) {
+      const playlistIds = videos
+        .filter(item => item?.id?.playlistId)
+        .map(item => item.id.playlistId);
+
+      if (playlistIds.length > 0) {
+        fetchPlaylistDetails(playlistIds);
+      }
+    }
+  }, [videos, filterType]);
 
   // useEffect to get data from categories screen route
   useEffect(() => {
@@ -308,12 +374,8 @@ function HomeScreen() {
   useFocusEffect(
     React.useCallback(() => {
       fetchSubscribedChannels();
-    }, []),
-  );
-
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchSubscribedChannels();
+      // Restore filter type when screen comes into focus
+      loadFilterType();
     }, []),
   );
 
@@ -542,6 +604,11 @@ function HomeScreen() {
     const isPlaylist = item?.id?.playlistId;
     const isSubscribed = subscribedChannels.includes(item.id.channelId);
 
+    // Filter items based on current filterType
+    if (filterType === 'video' && !isVideo) return null;
+    if (filterType === 'channel' && !isChannel) return null;
+    if (filterType === 'playlist' && !isPlaylist) return null;
+
     if (isChannel) {
       return (
         <TouchableOpacity
@@ -604,8 +671,8 @@ function HomeScreen() {
             /> */}
             <Text
               style={{
-                color: AppColors.darkGray,
-                fontSize: 10,
+                color: isSubscribed ? '#fff' : AppColors.darkGray,
+                fontSize: 14,
                 fontFamily: AppFonts.Medium,
               }}>
               {isSubscribed ? 'Unsubscribe' : 'Subscribe'}
@@ -673,98 +740,113 @@ function HomeScreen() {
         </View>
       );
     }
-    if (filterType === 'playlist' && isPlaylist) {
+    if (isPlaylist) {
       return (
-        <View
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('PlayList Details', {
+              playlistId: item.id.playlistId,
+              source: 'youtube',
+            })
+          }
           style={{
-            marginVertical: 10,
-            marginHorizontal: 10,
-            borderRadius: 10,
-            overflow: 'hidden',
+            flexDirection: 'row',
+            marginVertical: 8,
+            marginHorizontal: 15,
+            alignItems: 'center',
             backgroundColor: '#fff',
-          }}>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate('PlayList Details', {
-                playlistId: item.id.playlistId,
-                source: 'youtube',
-              })
-            }
-            activeOpacity={0.8}>
-            <View style={{position: 'relative'}}>
-              <Image
-                source={{uri: item?.snippet?.thumbnails?.high?.url}}
-                style={{
-                  width: '100%',
-                  height: 190,
-                  resizeMode: 'cover',
-                  backgroundColor: '#ccc',
-                }}
-              />
-              {/* Mix Badge */}
-              <View
-                style={{
-                  position: 'absolute',
-                  right: 8,
-                  bottom: 8,
-                  backgroundColor: '#000',
-                  paddingVertical: 2,
-                  paddingHorizontal: 6,
-                  borderRadius: 4,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  opacity: 0.8,
-                }}>
-                <MaterialIcons
-                  name="queue-music"
-                  size={16}
-                  color="#fff"
-                  style={{marginRight: 4}}
-                />
-                <Text style={{color: '#fff', fontSize: 12}}>Mix</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
+            borderRadius: 12,
+            padding: 12,
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.1,
+            shadowRadius: 3.84,
+            elevation: 5,
+          }}
+          activeOpacity={0.8}>
+          {/* Playlist Thumbnail */}
           <View
             style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: 4,
-              paddingVertical: 8,
+              width: 80,
+              height: 80,
+              borderRadius: 12,
+              overflow: 'hidden',
+              marginRight: 15,
             }}>
-            <View style={{flex: 1, paddingRight: 10}}>
-              <Text
-                numberOfLines={1}
-                style={{
-                  fontSize: 16,
-                  fontWeight: 'bold',
-                  color: '#000',
-                }}>
-                Mix – Playlist
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={{
-                  fontSize: 13,
-                  color: '#666',
-                  marginTop: 2,
-                }}>
-                {item?.snippet?.channelTitle || 'Various Artists'}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => {
-                setSelectedVideoId(item.id.playlistId);
-                console.log(item.id.playlistId);
-                sheetRef.current.open();
+            <Image
+              source={{uri: item?.snippet?.thumbnails?.high?.url}}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+                backgroundColor: '#f0f0f0',
+              }}
+            />
+            {/* Playlist Icon Overlay */}
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 4,
+                right: 4,
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                borderRadius: 4,
+                padding: 2,
               }}>
-              <MaterialIcons name="more-vert" size={22} color="#444" />
-            </TouchableOpacity>
+              <MaterialIcons name="playlist-play" size={16} color="#fff" />
+            </View>
           </View>
-        </View>
+
+          {/* Playlist Info */}
+          <View style={{flex: 1, justifyContent: 'center'}}>
+            <Text
+              numberOfLines={2}
+              style={{
+                fontSize: 18,
+                fontFamily: AppFonts.SemiBold,
+                color: '#333',
+                marginBottom: 4,
+              }}>
+              {item?.snippet?.title || 'Playlist'}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 14,
+                fontFamily: AppFonts.Regular,
+                color: '#666',
+                marginBottom: 2,
+              }}>
+              {item?.snippet?.channelTitle || 'Various Artists'}
+            </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                fontFamily: AppFonts.Regular,
+                color: '#999',
+              }}>
+              {playlistDetails[item.id.playlistId]?.itemCount
+                ? `${playlistDetails[item.id.playlistId].itemCount} videos`
+                : 'Playlist'}
+            </Text>
+          </View>
+
+          {/* More Options */}
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedVideoId(item.id.playlistId);
+              console.log(item.id.playlistId);
+              sheetRef.current.open();
+            }}
+            style={{
+              padding: 8,
+              marginLeft: 8,
+            }}>
+            <MaterialIcons name="more-vert" size={24} color="#666" />
+          </TouchableOpacity>
+        </TouchableOpacity>
       );
     }
 
@@ -935,8 +1017,8 @@ function HomeScreen() {
             })}
           </ScrollView>
         </View> */}
-        <View style={{marginHorizontal: 15, marginTop: 15, borderRadius: 15, paddingVertical: 5}}>
-            <Text style={{fontFamily: AppFonts.Bold, fontSize: 24, color: AppColors.theme, textAlign: 'center'}}>{selectedCategory}</Text>
+        <View style={{marginHorizontal: 15, marginTop: 15, backgroundColor: AppColors.theme, borderRadius: 15, paddingVertical: 5}}>
+            <Text style={{fontFamily: AppFonts.Bold, fontSize: 24, color: 'white', textAlign: 'center'}}>{selectedCategory}</Text>
         </View>
         <View style={{marginHorizontal: 10, marginVertical: 15}}>
           <View
@@ -953,6 +1035,7 @@ function HomeScreen() {
                     getVideos(false, searchText, selectedCategory);
                   } else {
                     setFilterType(type);
+                    saveFilterType(type);
                     getVideos(false, searchText, selectedCategory);
                   }
                 }}
@@ -981,27 +1064,27 @@ function HomeScreen() {
           </View>
         </View>
         <Searchbar
-        style={{
+          style={{
             marginHorizontal: 20,
             backgroundColor: '#f0f0f0',
             borderRadius: 15,
             height: 45,
-        }}
-        inputStyle={{
+          }}
+          inputStyle={{
             fontSize: 14,
             fontFamily: AppFonts.Light,
-            alignSelf: 'center'
-        }}
-        contentStyle={{
+            alignSelf: 'center',
+          }}
+          contentStyle={{
             height: 45,
             alignSelf: 'center',
-        }}
-        placeholder={`Search within ${selectedCategory}...`}
-        onChangeText={setSearchText}
-        onClearIconPress={() => setSearchText('')}
-        onSubmitEditing={onSearchSubmit}
-        returnKeyType="search"
-        value={searchText}
+          }}
+          placeholder={`Search within ${selectedCategory}...`}
+          onChangeText={setSearchText}
+          onClearIconPress={() => setSearchText('')}
+          onSubmitEditing={onSearchSubmit}
+          returnKeyType="search"
+          value={searchText}
         />
         {load ? (
           <ActivityIndicator
