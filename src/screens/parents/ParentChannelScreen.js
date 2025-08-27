@@ -28,6 +28,7 @@ function ChannelVideos({route}) {
   const [selectedVideoId, setSelectedVideoId] = useState(null);
   const uploadsPlaylistId = useRef('');
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+  const [thumbnail, setThumbnail] = useState(null);
 
   const API_KEY = config.cli.api_key;
 
@@ -36,6 +37,7 @@ function ChannelVideos({route}) {
 
   useEffect(() => {
     const channelId = route?.params?.channelId;
+    setThumbnail(route?.params?.thumbnail);
     if (channelId) {
       uploadsPlaylistId.current = '';
       setVideos([]);
@@ -188,7 +190,8 @@ function ChannelVideos({route}) {
         <AppLoader message="Loading videos..." />
       ) : (
         <>
-          <View style={{padding: 10}}>
+          <View style={{padding: 10, display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center'}}>
+            <Image source={thumbnail} style={{width: 80, height: 80, borderRadius: 40}} />
             <Text style={{fontSize: 18, fontWeight: 'bold', marginBottom: 10}}>
               {videos[0]?.snippet?.channelTitle}
             </Text>

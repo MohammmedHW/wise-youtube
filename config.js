@@ -3,6 +3,6 @@ export const config = {
   cli: {
     url: 'http://timesride.com/custom',
     base_url: 'https://youtube.googleapis.com/youtube/v3',
-    api_key: 'AIzaSyDny6RxxhQUPsyGvHMIe7Dk1vgm0NgmLNE',
+    api_key: 'AIzaSyBmw0Hvx7lLeYyMMF4I4GTDwRuphU3E0t4',
   },
 };

@@ -671,8 +671,8 @@ function HomeScreen() {
             /> */}
             <Text
               style={{
-                color: AppColors.darkGray,
-                fontSize: 10,
+                color: isSubscribed ? '#fff' : AppColors.darkGray,
+                fontSize: 14,
                 fontFamily: AppFonts.Medium,
               }}>
               {isSubscribed ? 'Unsubscribe' : 'Subscribe'}

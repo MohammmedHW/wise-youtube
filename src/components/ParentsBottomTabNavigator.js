@@ -73,7 +73,7 @@ const ParentsBottomTabNavigator = ({onLogout}) => {
               outlineName = 'home-outline';
               fillName = 'home';
               break;
-            case 'Channel Video':
+            case 'Channels':
               outlineName = 'videocam-outline';
               fillName = 'videocam';
               break;
@@ -110,7 +110,7 @@ const ParentsBottomTabNavigator = ({onLogout}) => {
         },
       })}>
       <Tab.Screen name="Select Category" component={SelectCategoryStack} />
-      <Tab.Screen name="Channel Video" component={VideoChannelAll} />
+      <Tab.Screen name="Channels" component={VideoChannelAll} />
       <Tab.Screen name="Playlist" component={ParentPlaylistScreen} />
       <Tab.Screen name="Profile" component={ParentProfileScreen} />
     </Tab.Navigator>
