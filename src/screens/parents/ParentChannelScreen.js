@@ -17,6 +17,8 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AppLoader from '../../components/AppLoader';
 import OptionsBottomSheet from '../../components/OptionsBottomSheet';
 import PlaylistBottomSheet from '../../components/PlaylistBottomSheet';
+import AppColors from '../../utils/AppColors';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 function ChannelVideos({route}) {
   const navigation = useNavigation();
@@ -29,6 +31,8 @@ function ChannelVideos({route}) {
   const uploadsPlaylistId = useRef('');
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
   const [thumbnail, setThumbnail] = useState(null);
+  const [sortType, setSortType] = useState('newest');
+  const [searchText, setSearchText] = useState('')
 
   const API_KEY = config.cli.api_key;
 
@@ -37,6 +41,7 @@ function ChannelVideos({route}) {
 
   useEffect(() => {
     const channelId = route?.params?.channelId;
+    
     setThumbnail(route?.params?.thumbnail);
     if (channelId) {
       uploadsPlaylistId.current = '';
@@ -44,6 +49,93 @@ function ChannelVideos({route}) {
       getVideosByChannelId(channelId);
     }
   }, []);
+
+  const iso8601ToDuration = iso => {
+    if (!iso) return '0:00';
+    const match = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(iso);
+    if (!match) return '0:00';
+    const hours = parseInt(match[1] || '0', 10);
+    const minutes = parseInt(match[2] || '0', 10);
+    const seconds = parseInt(match[3] || '0', 10);
+    const mm = hours > 0 ? String(minutes).padStart(2, '0') : String(minutes);
+    const ss = String(seconds).padStart(2, '0');
+    return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
+  };
+
+  const formatViews = v => {
+    if (!v) return '0 views';
+    const num = Number(v);
+    if (num >= 1e9) return `${(num / 1e9).toFixed(1)}B views`;
+    if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M views`;
+    if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K views`;
+    return `${num} views`;
+  };
+
+  const timeAgo = dateStr => {
+    const date = new Date(dateStr);
+    const diff = Date.now() - date.getTime();
+    const s = Math.floor(diff / 1000);
+    const m = Math.floor(s / 60);
+    const h = Math.floor(m / 60);
+    const d = Math.floor(h / 24);
+    const mo = Math.floor(d / 30);
+    const y = Math.floor(d / 365);
+    if (y > 0) return `${y} year${y > 1 ? 's' : ''} ago`;
+    if (mo > 0) return `${mo} month${mo > 1 ? 's' : ''} ago`;
+    if (d > 0) return `${d} day${d > 1 ? 's' : ''} ago`;
+    if (h > 0) return `${h} hour${h > 1 ? 's' : ''} ago`;
+    if (m > 0) return `${m} minute${m > 1 ? 's' : ''} ago`;
+    return 'just now';
+  };
+
+  const enrichWithStats = async items => {
+    try {
+      const ids = items
+        .map(it => it?.snippet?.resourceId?.videoId)
+        .filter(Boolean);
+      if (ids.length === 0) return items;
+
+      // videos API allows up to 50 ids per call
+      const chunks = [];
+      for (let i = 0; i < ids.length; i += 50) {
+        chunks.push(ids.slice(i, i + 50));
+      }
+
+      const results = await Promise.all(
+        chunks.map(async chunk => {
+          const res = await fetch(
+            `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${chunk.join(',')}&key=${API_KEY}`,
+          );
+          return res.json();
+        }),
+      );
+
+      const meta = new Map();
+      results.forEach(r => {
+        (r.items || []).forEach(v =>
+          meta.set(v.id, {
+            viewCount: v.statistics?.viewCount,
+            duration: iso8601ToDuration(v.contentDetails?.duration),
+          }),
+        );
+      });
+
+      return items.map(it => {
+        const vid = it?.snippet?.resourceId?.videoId;
+        const m = meta.get(vid) || {};
+        return {
+          ...it,
+          stats: {
+            viewCount: m.viewCount || '0',
+            duration: m.duration || '0:00',
+          },
+        };
+      });
+    } catch (e) {
+      console.log('Failed to enrich stats', e);
+      return items;
+    }
+  };
 
   const getVideosByChannelId = async (channelId, page = '') => {
     try {
@@ -66,9 +158,12 @@ function ChannelVideos({route}) {
       const videosRes = await fetch(
         `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${uploadsPlaylistId.current}&pageToken=${page}&key=${API_KEY}`,
       );
+
       const videosData = await videosRes.json();
 
-      setVideos(prev => [...prev, ...(videosData.items || [])]);
+      const items = await enrichWithStats(videosData.items || []);
+
+      setVideos(prev => [...prev, ...items]);
       setPageToken(videosData.nextPageToken || '');
     } catch (err) {
       console.error('Error loading videos:', err);
@@ -78,6 +173,26 @@ function ChannelVideos({route}) {
     }
   };
 
+  const sortedVideos = (() => {
+    const copy = [...videos];
+    if (sortType === 'newest') {
+      return copy.sort(
+        (a, b) =>
+          new Date(b?.snippet?.publishedAt) - new Date(a?.snippet?.publishedAt),
+      );
+    }
+    if (sortType === 'oldest') {
+      return copy.sort(
+        (a, b) =>
+          new Date(a?.snippet?.publishedAt) - new Date(b?.snippet?.publishedAt),
+      );
+    }
+    // mostViewed
+    return copy.sort(
+      (a, b) => Number(b?.stats?.viewCount || 0) - Number(a?.stats?.viewCount || 0),
+    );
+  })();
+
   const renderItem = ({item}) => {
     const videoId = item?.snippet?.resourceId?.videoId;
     if (!videoId) return null;
@@ -86,52 +201,68 @@ function ChannelVideos({route}) {
       <View
         style={{
           flex: 1,
-          marginVertical: 6,
+          margin: 8,
           backgroundColor: 'white',
+          borderRadius: 12,
           overflow: 'hidden',
+          elevation: 2,
         }}>
         <TouchableHighlight
           style={{width: '100%'}}
-          onPress={() => navigation.navigate('Add Video')}>
-          <Image
-            source={{uri: item.snippet?.thumbnails?.medium?.url}}
-            style={{
-              width: '100%',
-              height: 200,
-              resizeMode: 'cover',
-            }}
-          />
-        </TouchableHighlight>
-        <View style={{flexDirection: 'row', padding: 10, alignItems: 'center'}}>
-          <View style={{flex: 1}}>
-            <Text
-              numberOfLines={2}
+          onPress={() => navigation.navigate('Add Video', {videoId})}>
+          <View>
+            <Image
+              source={{uri: item.snippet?.thumbnails?.medium?.url}}
               style={{
-                fontSize: 16,
-                color: '#222',
-                fontFamily: 'Roboto-Medium',
-              }}>
-              {item.snippet?.title}
-            </Text>
-            <Text
+                width: '100%',
+                height: 140,
+                resizeMode: 'cover',
+              }}
+            />
+            <View
               style={{
-                fontSize: 13,
-                color: '#666',
-                marginTop: 2,
-                fontFamily: 'Roboto-Regular',
+                position: 'absolute',
+                right: 8,
+                bottom: 8,
+                backgroundColor: 'rgba(0,0,0,0.75)',
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+                borderRadius: 6,
               }}>
-              {item.snippet?.channelTitle}
-            </Text>
+              <Text style={{color: '#fff', fontSize: 12}}>
+                {item?.stats?.duration || '0:00'}
+              </Text>
+            </View>
           </View>
-
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedVideoId(item.snippet?.resourceId?.videoId);
-              sheetRef.current.open();
+        </TouchableHighlight>
+        <View style={{padding: 10}}>
+          <Text
+            numberOfLines={2}
+            style={{
+              fontSize: 14,
+              color: AppColors.black,
+              fontFamily: 'Roboto-Medium',
             }}>
-            <MaterialIcons name="more-vert" size={24} color="#555" />
-          </TouchableOpacity>
+            {item.snippet?.title}
+          </Text>
+          <Text
+            style={{
+              fontSize: 12,
+              color: '#666',
+              marginTop: 6,
+              fontFamily: 'Roboto-Regular',
+            }}>
+            {formatViews(item?.stats?.viewCount)} • {timeAgo(item?.snippet?.publishedAt)}
+          </Text>
         </View>
+        <TouchableOpacity
+          onPress={() => {
+            setSelectedVideoId(videoId);
+            sheetRef.current.open();
+          }}
+          style={{position: 'absolute', right: 6, top: 6, padding: 6}}>
+          <MaterialIcons name="more-vert" size={22} color="#fff" />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -190,19 +321,55 @@ function ChannelVideos({route}) {
         <AppLoader message="Loading videos..." />
       ) : (
         <>
-          <View style={{padding: 10, display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center'}}>
-            <Image source={thumbnail} style={{width: 80, height: 80, borderRadius: 40}} />
-            <Text style={{fontSize: 18, fontWeight: 'bold', marginBottom: 10}}>
-              {videos[0]?.snippet?.channelTitle}
-            </Text>
+          <View style={{padding: 10, display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', columnGap: 20, paddingHorizontal: 20, paddingVertical: 20, backgroundColor: AppColors.backgroundGray}}>
+            <Image source={{uri: thumbnail}} style={{width: 70, height: 70, borderRadius: 40}} />
+            <View style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', rowGap: 5, flex: 1}}>
+                <Text 
+                  numberOfLines={2}
+                  style={{fontSize: 28, color: AppColors.black, fontWeight: 'bold', flexShrink: 1}}>
+                {videos[0]?.snippet?.channelTitle}
+                </Text>
+                {route?.params?.isSubscribed && <View style={{display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', columnGap: 5}}>
+                    <Icon name='check-circle' color={"green"} size={25} />
+                    <Text style={{fontSize: 16, color: AppColors.black}}>Added to My Channels</Text>
+                </View>}
+            </View>
+          </View>
+
+          <View style={{flexDirection: 'row', paddingHorizontal: 16, marginTop: 8, marginBottom: 6, columnGap: 8}}>
+            {[
+              {key: 'newest', label: 'Newest First'},
+              {key: 'oldest', label: 'Oldest First'},
+              {key: 'mostViewed', label: 'Most Viewed'},
+            ].map(tab => (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={() => setSortType(tab.key)}
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  backgroundColor:
+                    sortType === tab.key ? AppColors.theme : AppColors.backgroundGray,
+                  borderRadius: 16,
+                }}>
+                <Text style={{
+                  color: sortType === tab.key ? AppColors.white : '#333',
+                  fontSize: 12,
+                }}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <FlatList
-            data={videos}
+            data={sortedVideos}
             renderItem={renderItem}
             keyExtractor={(item, index) =>
               item?.snippet?.resourceId?.videoId || index.toString()
             }
+            numColumns={2}
+            columnWrapperStyle={{justifyContent: 'space-between', paddingHorizontal: 8}}
             onEndReachedThreshold={0.5}
             onEndReached={() => {
               if (pageToken && !loadingMore) {

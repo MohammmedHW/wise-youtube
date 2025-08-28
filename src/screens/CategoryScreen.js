@@ -14,6 +14,7 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 
 import AppFonts from '../utils/AppFonts';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const {width} = Dimensions.get('window');
 const ITEM_WIDTH = (width - 60) / 3;
@@ -41,7 +42,8 @@ function CategoryScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const handleSubcategoryPress = subcategory => {
+  const handleSubcategoryPress = async subcategory => {
+    await AsyncStorage.setItem("selectedCategory", subcategory.name)
     navigation.navigate('ParentHomeScreen', {
       categoryId,
       categoryName,

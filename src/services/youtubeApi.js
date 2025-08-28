@@ -63,7 +63,7 @@ const getVideosBySearch = (search, pageToken = '', type = 'video') => {
           });
           resolve({...response.data, items: shorts});
         } else {
-					console.log("TCL: getVideosBySearch -> response.data", JSON.stringify(response.data))
+					// console.log("TCL: getVideosBySearch -> response.data", JSON.stringify(response.data))
 
           resolve(response.data);
         }

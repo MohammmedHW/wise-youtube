@@ -63,8 +63,10 @@ export default function VideoChannelAll() {
 
   const fetchSubscribedChannels = async () => {
     try {
+        setIsLoading(true);
       const userId = await getUserId();
       if (!userId) {
+        setIsLoading(false);
         console.log('User ID not found!');
         return;
       }
@@ -98,7 +100,7 @@ export default function VideoChannelAll() {
           `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelIds}&key=${API_KEY}`,
         );
         const channelData = await detailsResponse.json();
-
+        
         const formattedChannels = channelData.items.map(item => ({
           id: item.id,
           name: item.snippet.title,
@@ -107,13 +109,15 @@ export default function VideoChannelAll() {
 
         const sortedChannels = formattedChannels.reverse();
         setSubscribedChannels(sortedChannels);
+        console.log("channelData", sortedChannels);
+
 
         // fetchChannelVideos(sortedChannels[0].id);
-        setSelectedChannel(sortedChannels[0].id);
-        setVideoFilter('none')
+        // setSelectedChannel(sortedChannels[0].id);
+        // setVideoFilter('none')
       } else {
         setSubscribedChannels([]);
-        setIsLoading(false);
+        // setIsLoading(false);
       }
     } catch (error) {
       console.error('Error fetching subscribed channels:', error);
@@ -160,7 +164,8 @@ export default function VideoChannelAll() {
       const data = await response.json();
 
       if (data.status === 'success') {
-        await fetchSubscribedChannels();
+        // await fetchSubscribedChannels();
+        setSubscribedChannels(prev => prev.filter(ch => ch.id != channelId));
         alert({
           type: DropdownAlertType.Success,
           title: 'Success',
@@ -314,6 +319,7 @@ export default function VideoChannelAll() {
 
   const renderChannelItem = ({item}) => {
     const isSelected = item.id === selectedChannel;
+    
 
     return (
       <View key={item.id} style={styles.channelCard}>
@@ -337,7 +343,7 @@ export default function VideoChannelAll() {
         <View style={styles.channelBtnContainer}>
             <TouchableOpacity
             style={{...styles.channelBtn, backgroundColor: AppColors.theme}}
-            onPress={() => navigation.navigate('Channel', {channelId: item.id, thumbnail: item.thumbnail})}>
+            onPress={() => navigation.navigate('Channel', {channelId: item.id, thumbnail: item.thumbnail, isSubscribed: true})}>
                 <Text style={{...styles.channelBtnText, color: AppColors.white}}>Explore Channel</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -479,14 +485,14 @@ export default function VideoChannelAll() {
     // }, [navigation]);
 
 
-  useEffect(() => {
-	console.log("TCL: videoFilter", videoFilter)
-  console.log("TCL: selectedChannel", selectedChannel)
+//   useEffect(() => {
+// 	console.log("TCL: videoFilter", videoFilter)
+//   console.log("TCL: selectedChannel", selectedChannel)
 
-    if (selectedChannel) {
-      fetchChannelVideos(selectedChannel);
-    }
-  }, [videoFilter]);
+//     if (selectedChannel) {
+//       fetchChannelVideos(selectedChannel);
+//     }
+//   }, [videoFilter]);
 
   const handleAddToPlaylist = async playlistId => {
     console.log('VideoChannelAll.js');
@@ -527,7 +533,7 @@ export default function VideoChannelAll() {
                 keyExtractor={(item, index) => item.id || `channel-${index}`}
                 renderItem={renderChannelItem}
                 numColumns={2}                        // ✅ two columns
-                columnWrapperStyle={{ flex: 1 }}      // ✅ each row takes full width
+                columnWrapperStyle={{ flex: 1, justifyContent: "space-between" }}      // ✅ each row takes full width
                 contentContainerStyle={{ flexGrow: 1 }}
                 style={{ flex: 1 }}
                 onEndReachedThreshold={0.5}
@@ -604,7 +610,7 @@ export default function VideoChannelAll() {
           )} */}
         </View>
       )}
-      <OptionsBottomSheet
+      {/* <OptionsBottomSheet
         sheetRef={sheetRef}
         fetchPlaylists={fetchPlaylists}
         openPlaylistSheet={() => playlistSheetRef.current.open()}
@@ -616,7 +622,7 @@ export default function VideoChannelAll() {
         playlists={playlists}
         handleAddToPlaylist={handleAddToPlaylist}
         loading={loadingPlaylists}
-      />
+      /> */}
       <DropdownAlert alert={func => (alert = func)} alertPosition="bottom" />
     </View>
   );
@@ -624,7 +630,11 @@ export default function VideoChannelAll() {
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#fff', padding: 10},
-  channelCard: {alignItems: 'center', flex: 1, maxWidth: "50%", marginBottom: 25},
+  channelCard: {alignItems: 'center', flex: 1, maxWidth: "48%", marginBottom: 15, borderWidth: 1, borderColor: AppColors.lightGray, borderRadius: 10, padding: 10, elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3, backgroundColor: AppColors.white},
   channelButton: {alignItems: 'center', marginBottom: 8},
   channelSelected: {borderColor: AppColors.theme, borderRadius: 10},
   channelImage: {width: 80, height: 80, borderRadius: 40, marginBottom: 5},

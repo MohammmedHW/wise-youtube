@@ -44,7 +44,7 @@ function HomeScreen() {
   const navigation = useNavigation();
   const [videos, setVideos] = useState([]);
   const {checkTrialFirstTime, setCheckTrialFirstTime} = useContext(AppContext);
-  console.log('TCL: checkTrialFirstTime', checkTrialFirstTime);
+//   console.log('TCL: checkTrialFirstTime', checkTrialFirstTime);
 
   const [searchText, setSearchText] = useState('');
   const [nextPageToken, setNextPageToken] = useState(null);
@@ -84,19 +84,26 @@ function HomeScreen() {
     }
   };
 
-  const loadFilterType = async () => {
+  const loadFilterTypeAndCategory = async () => {
     try {
       const savedFilterType = await AsyncStorage.getItem(
         'parentHomeFilterType',
       );
-      if (savedFilterType && savedFilterType !== filterType) {
-        setFilterType(savedFilterType);
-        return savedFilterType;
-      }
-      return filterType;
+      const savedCategory = await AsyncStorage.getItem('selectedCategory');
+    //   if (savedFilterType && savedFilterType !== filterType) {
+        setFilterType(savedFilterType || filterType);
+      console.log("here---", savedFilterType);
+
+        if(savedFilterType=="channel") fetchSubscribedChannels();
+        // return savedFilterType;
+    //   }
+      
+        setSelectedCategory(savedCategory || selectedCategory);
+    //   getVideos(false, '', category);
+    //   return filterType;
     } catch (error) {
       console.error('Error loading filter type:', error);
-      return filterType;
+    //   return filterType;
     }
   };
 
@@ -121,15 +128,21 @@ function HomeScreen() {
       console.error('Error fetching playlist details:', error);
     }
   };
+
   useEffect(() => {
-    const isFocused = navigation.addListener('focus', () => {
+    const isFocused = navigation.addListener('focus', async () => {
       checkLock();
-      loadFilterType().then(savedType => {
-        // If we loaded a different filter type, fetch data for that type
-        if (savedType !== filterType) {
-          getVideos(false, searchText, selectedCategory);
-        }
-      });
+      loadFilterTypeAndCategory()
+      
+      // NOTE: Commented for now
+    //   .then(savedType => {
+    //     // If we loaded a different filter type, fetch data for that type
+    //     console.log(savedType, filterType);
+        
+    //     if (savedType !== filterType) {
+    //       getVideos(false, searchText, selectedCategory);
+    //     }
+    //   });
     });
     return isFocused;
   }, [navigation]);
@@ -184,9 +197,9 @@ function HomeScreen() {
     }
   };
 
-  useEffect(() => {
+  useEffect(() => {    
     getVideos(false, searchText, selectedCategory);
-  }, [filterType]);
+  }, [filterType, selectedCategory]);
 
   // Fetch playlist details when videos change and filterType is playlist
   useEffect(() => {
@@ -201,87 +214,107 @@ function HomeScreen() {
     }
   }, [videos, filterType]);
 
+  // NOTE: Commented for now
   // useEffect to get data from categories screen route
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      if (navigation.getState().routes[navigation.getState().index].params) {
-        const params =
-          navigation.getState().routes[navigation.getState().index].params;
-        if (params.subcategoryName) {
-          const category = params.subcategoryName;
-          console.log('category', category);
-          setSelectedCategory(category);
-          getVideos(false, '', category);
-        }
-      }
-    });
+//   useEffect(() => {
+//     const unsubscribe = navigation.addListener('focus', () => {
+//       if (navigation.getState().routes[navigation.getState().index].params) {
+//         const params =
+//           navigation.getState().routes[navigation.getState().index].params;
+//         if (params.subcategoryName) {
+//           const category = params.subcategoryName;
+//           console.log('category', category);
+//           setSelectedCategory(category);
+//           getVideos(false, '', category);
+//         }
+//       }
+//     });
 
-    return unsubscribe;
-  }, [navigation]);
+//     return unsubscribe;
+//   }, [navigation]);
 
-  // useEffect(() => {
-  //   const fetchStats = async () => {
-  //     const uniqueChannelIds = [
-  //       ...new Set(
-  //         videos
-  //           .filter(item => item.id?.channelId)
-  //           .map(item => item.id.channelId),
-  //       ),
-  //     ].filter(id => !channelStats[id]);
+// NOTE: Commented for now
+//   useEffect(() => {
+//     const fetchStats = async () => {
+//       const uniqueChannelIds = [
+//         ...new Set(
+//           videos
+//             .filter(item => item.id?.channelId)
+//             .map(item => item.id.channelId),
+//         ),
+//       ].filter(id => !channelStats[id]);
 
-  //     if (uniqueChannelIds.length === 0) return;
+//       if (uniqueChannelIds.length === 0) return;
 
-  //     try {
-  //       const response = await fetch(
-  //         `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${uniqueChannelIds.join(
-  //           ',',
-  //         )}&key=${API_KEY}`,
-  //       );
-  //       const data = await response.json();
+//       try {
+//         const response = await fetch(
+//           `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${uniqueChannelIds.join(
+//             ',',
+//           )}&key=${API_KEY}`,
+//         );
+//         const data = await response.json();
 
-  //       const statsMap = {};
-  //       data.items.forEach(item => {
-  //         statsMap[item.id] = {
-  //           subscriberCount: item.statistics.subscriberCount,
-  //           videoCount: item.statistics.videoCount,
-  //         };
-  //       });
+//         const statsMap = {};
+//         data.items.forEach(item => {
+//           statsMap[item.id] = {
+//             subscriberCount: item.statistics.subscriberCount,
+//             videoCount: item.statistics.videoCount,
+//           };
+//         });
 
-  //       setChannelStats(prev => ({...prev, ...statsMap}));
-  //     } catch (err) {
-  //       console.error('Error fetching stats:', err);
-  //     }
-  //   };
+//         setChannelStats(prev => ({...prev, ...statsMap}));
+//       } catch (err) {
+//         console.error('Error fetching stats:', err);
+//       }
+//     };
 
-  //   fetchStats();
-  // }, [videos]);
+//     fetchStats();
+//   }, [videos]);
 
-  useEffect(() => {
-    const checkSubscriptions = async () => {
-      try {
-        const subscribedChannels = await AsyncStorage.getItem(
-          'subscribedChannels',
-        );
-        const subscribedChannelsList = subscribedChannels
-          ? JSON.parse(subscribedChannels)
-          : [];
+//   useEffect(() => {
+//     // const checkSubscriptions = async () => {
+//     //   try {
+//     //     // NOTE: Uncomment
+//     //     // const subscribedChannels = await AsyncStorage.getItem(
+//     //     //   'subscribedChannels',
+//     //     // );
+//     //     const subscribedChannels = await fetchSubscribedChannels();
+//     //     const subscribedChannelsList = subscribedChannels
+//     //       ? JSON.parse(subscribedChannels)
+//     //       : [];
 
-        const newIsSubscribedMap = {};
-        videos.forEach(item => {
-          if (item?.id?.channelId) {
-            newIsSubscribedMap[item.id.channelId] =
-              subscribedChannelsList.includes(item.id.channelId);
-          }
-        });
+//     //     const newIsSubscribedMap = {};
+//     //     videos.forEach(item => {
+//     //       if (item?.id?.channelId) {
+//     //         newIsSubscribedMap[item.id.channelId] =
+//     //           subscribedChannelsList.includes(item.id.channelId);
+//     //       }
+//     //     });
 
-        setIsSubscribedMap(newIsSubscribedMap);
-      } catch (error) {
-        console.error('Error checking subscription status', error);
-      }
-    };
+//     //     setIsSubscribedMap(newIsSubscribedMap);
+//     //   } catch (error) {
+//     //     console.error('Error checking subscription status', error);
+//     //   }
+//     // };
 
-    checkSubscriptions();
-  }, [videos]);
+//     // if(filterType=="channel") fetchSubscribedChannels();
+//   }, [videos]);
+
+//   useEffect(() => {
+//     const subscribedChannelsList = subscribedChannels
+//           ? JSON.parse(subscribedChannels)
+//           : [];
+
+//         const newIsSubscribedMap = {};
+//         videos.forEach(item => {
+//           if (item?.id?.channelId) {
+//             newIsSubscribedMap[item.id.channelId] =
+//               subscribedChannelsList.includes(item.id.channelId);
+//           }
+//         });
+
+//         setIsSubscribedMap(newIsSubscribedMap);
+//   }, [subscribedChannels])
 
   const getUserId = async () => {
     try {
@@ -295,7 +328,7 @@ function HomeScreen() {
     return null;
   };
 
-  const handleSubscriptionToggle = channelId => {
+  const handleSubscriptionToggle = async channelId => {
     Vibration.vibrate(100);
 
     // Optimistically update UI
@@ -303,35 +336,91 @@ function HomeScreen() {
       ? 'unsubscribe'
       : 'subscribe';
 
-    const updatedSubscribedChannels = [...subscribedChannels];
+      try {
+        const userId = await getUserId();
+  
+        if (!userId) {
+          console.log('User ID not found!');
+          return;
+        }
+  
+        const requestData = {
+          action,
+          userid: userId,
+          channel_id: channelId,
+        };
+  
+        setIsLoading(true);
+  
+        const response = await fetch(
+          'http://timesride.com/custom/SubscribeAddDelete.php',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData),
+          },
+        );
+  
+        if (!response.ok) {
+          throw new Error(`Failed to ${action} channel`);
+        }
+  
+        const data = await response.json();
+  
+        if (data.status === 'success') {
+          // await fetchSubscribedChannels();
+          if(action=='unsubscribe') setSubscribedChannels(prev => prev.filter(id => id!=channelId));
+          else setSubscribedChannels(prev => [channelId, ...prev]);
+          alert({
+            type: DropdownAlertType.Success,
+            title: 'Success',
+            message: `Channel ${action}ed successfully`,
+          });
+        } else {
+          alert({
+            type: DropdownAlertType.Error,
+            title: 'Error',
+            message: `Failed to ${action} channel`,
+          });
+        }
+      } catch (error) {
+        console.error(`Error ${action}ing channel:`, error);
+        Alert.alert('Error', `An error occurred while ${action=='subscribe' ? 'subscribing' : 'unsubscribing'}`);
+      } finally {
+        setIsLoading(false);
+      }
+    // const updatedSubscribedChannels = [...subscribedChannels];
 
-    if (action === 'subscribe') {
-      updatedSubscribedChannels.push(channelId);
-    } else {
-      const index = updatedSubscribedChannels.indexOf(channelId);
-      if (index !== -1) updatedSubscribedChannels.splice(index, 1);
-    }
+    // if (action === 'subscribe') {
+    //   updatedSubscribedChannels.push(channelId);
+    // } else {
+    // //   const index = updatedSubscribedChannels.indexOf(channelId);
+    // //   if (index !== -1) updatedSubscribedChannels.splice(index, 1);
+    //     unsubscribeChannel(channelId);
+    // }
 
-    setSubscribedChannels(updatedSubscribedChannels);
+    // // setSubscribedChannels(updatedSubscribedChannels);
 
-    // Show success message without server check
-    alert({
-      type: DropdownAlertType.Success,
-      title: 'Success',
-      message: `You have successfully ${action}d the channel`,
-    });
+    // // Show success message without server check
+    // alert({
+    //   type: DropdownAlertType.Success,
+    //   title: 'Success',
+    //   message: `You have successfully ${action}d the channel`,
+    // });
 
-    console.log(`TCL: Subscription toggle bypassed server. Action: ${action}`);
+    // console.log(`TCL: Subscription toggle bypassed server. Action: ${action}`);
   };
 
   const fetchSubscribedChannels = async () => {
-    setload(true);
+    // setIsLoading(true);
 
     try {
       const userId = await getUserId();
       if (!userId) {
         console.log('User ID not found!');
-        setload(false);
+        // setIsLoading(false);
         return;
       }
 
@@ -359,6 +448,8 @@ function HomeScreen() {
 
       if (data.status === 'success' && data.data.length > 0) {
         const subscribedChannelIds = data.data.map(item => item.channel_id);
+        console.log(subscribedChannelIds);
+        
         setSubscribedChannels(subscribedChannelIds);
       } else {
         setSubscribedChannels([]);
@@ -367,17 +458,18 @@ function HomeScreen() {
       console.error('Error fetching subscribed channels:', error);
       setSubscribedChannels([]);
     } finally {
-      setload(false);
+    //   setIsLoading(false);
     }
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchSubscribedChannels();
-      // Restore filter type when screen comes into focus
-      loadFilterType();
-    }, []),
-  );
+  // NOTE: Uncommit later
+//   useFocusEffect(
+//     React.useCallback(() => {
+//       fetchSubscribedChannels();
+//       // Restore filter type when screen comes into focus
+//     //   loadFilterType();
+//     }, []),
+//   );
 
   const formatCount = count => {
     if (!count) return '0';
@@ -420,17 +512,17 @@ function HomeScreen() {
     if (!isLoadMore && !refreshing) setIsLoading(true);
 
     try {
-      console.log('Using API Key:', API_KEY); // Log the API key being used
+    //   console.log('Using API Key:', API_KEY); // Log the API key being used
       const response = await YoutubeApi.getVideosBySearch(
         keyword,
         isLoadMore ? nextPageToken : '',
         filterType,
       );
 
-      console.log(
-        'TCL: response responseresponseresponseresponseresponse',
-        JSON.stringify(response),
-      );
+    //   console.log(
+    //     'TCL: response responseresponseresponseresponseresponse',
+    //     JSON.stringify(response),
+    //   );
 
       setNextPageToken(response.nextPageToken || null);
 
@@ -599,10 +691,9 @@ function HomeScreen() {
 
   const renderItem = ({item}) => {
     const isChannel = item?.id?.channelId;
-    console.log('TCL: renderItem -> isChannel', isChannel);
+    // console.log('TCL: renderItem -> isChannel', isChannel);
     const isVideo = item?.id?.videoId;
     const isPlaylist = item?.id?.playlistId;
-    const isSubscribed = subscribedChannels.includes(item.id.channelId);
 
     // Filter items based on current filterType
     if (filterType === 'video' && !isVideo) return null;
@@ -610,6 +701,7 @@ function HomeScreen() {
     if (filterType === 'playlist' && !isPlaylist) return null;
 
     if (isChannel) {
+        const isSubscribed = subscribedChannels.includes(isChannel);
       return (
         <TouchableOpacity
           style={{
@@ -624,7 +716,7 @@ function HomeScreen() {
             // borderColor: '#ddd',
           }}
           onPress={() =>
-            navigation.navigate('Channel', {channelId: item.id.channelId})
+            navigation.navigate('Channel', {channelId: item.id.channelId, thumbnail: item?.snippet?.thumbnails?.high?.url, isSubscribed})
           }>
           <Image
             source={{uri: item?.snippet?.thumbnails?.high?.url}}
@@ -837,7 +929,7 @@ function HomeScreen() {
           <TouchableOpacity
             onPress={() => {
               setSelectedVideoId(item.id.playlistId);
-              console.log(item.id.playlistId);
+            //   console.log(item.id.playlistId);
               sheetRef.current.open();
             }}
             style={{
@@ -1031,12 +1123,13 @@ function HomeScreen() {
               <TouchableOpacity
                 key={type}
                 onPress={() => {
-                  if (filterType === type) {
-                    getVideos(false, searchText, selectedCategory);
-                  } else {
+                    // not required
+                //   if (filterType === type) {
+                //     getVideos(false, searchText, selectedCategory);
+                //   } else
+                if (filterType !== type) {
                     setFilterType(type);
                     saveFilterType(type);
-                    getVideos(false, searchText, selectedCategory);
                   }
                 }}
                 style={{
@@ -1086,13 +1179,13 @@ function HomeScreen() {
           returnKeyType="search"
           value={searchText}
         />
-        {load ? (
+        {/* {filterType=="channel" && load ? (
           <ActivityIndicator
             size="large"
             color={AppColors.theme}
             style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}
           />
-        ) : (
+        ) : ( */}
           <FlatList
             data={videos}
             key={filterType === 'short' ? 'shorts' : filterType}
@@ -1130,7 +1223,7 @@ function HomeScreen() {
               ) : null
             }
           />
-        )}
+        {/* )} */}
         <OptionsBottomSheet
           sheetRef={sheetRef}
           fetchPlaylists={fetchPlaylists}
