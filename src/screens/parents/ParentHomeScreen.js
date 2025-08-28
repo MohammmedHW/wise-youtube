@@ -671,8 +671,8 @@ function HomeScreen() {
             /> */}
             <Text
               style={{
-                color: AppColors.darkGray,
-                fontSize: 10,
+                color: isSubscribed ? '#fff' : AppColors.darkGray,
+                fontSize: 14,
                 fontFamily: AppFonts.Medium,
               }}>
               {isSubscribed ? 'Unsubscribe' : 'Subscribe'}
@@ -1017,23 +1017,8 @@ function HomeScreen() {
             })}
           </ScrollView>
         </View> */}
-        <View
-          style={{
-            marginHorizontal: 15,
-            marginTop: 15,
-            backgroundColor: AppColors.theme,
-            borderRadius: 15,
-            paddingVertical: 5,
-          }}>
-          <Text
-            style={{
-              fontFamily: AppFonts.Bold,
-              fontSize: 24,
-              color: 'white',
-              textAlign: 'center',
-            }}>
-            {selectedCategory}
-          </Text>
+        <View style={{marginHorizontal: 15, marginTop: 15, backgroundColor: AppColors.theme, borderRadius: 15, paddingVertical: 5}}>
+            <Text style={{fontFamily: AppFonts.Bold, fontSize: 24, color: 'white', textAlign: 'center'}}>{selectedCategory}</Text>
         </View>
         <View style={{marginHorizontal: 10, marginVertical: 15}}>
           <View

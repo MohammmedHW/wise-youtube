@@ -108,7 +108,7 @@ export default function VideoChannelAll() {
         const sortedChannels = formattedChannels.reverse();
         setSubscribedChannels(sortedChannels);
 
-        fetchChannelVideos(sortedChannels[0].id);
+        // fetchChannelVideos(sortedChannels[0].id);
         setSelectedChannel(sortedChannels[0].id);
         setVideoFilter('none')
       } else {
@@ -316,37 +316,37 @@ export default function VideoChannelAll() {
     const isSelected = item.id === selectedChannel;
 
     return (
-      <View style={styles.channelCard}>
-        <TouchableOpacity
-          style={[styles.channelButton, isSelected && styles.channelSelected]}
+      <View key={item.id} style={styles.channelCard}>
+        {/* <TouchableOpacity
+          style={styles.channelButton}
           onPress={() => {
             setVideoNextPage(null);
             fetchChannelVideos(item.id);
-          }}>
-          <View style={{position: 'relative'}}>
-            <Image source={{uri: item.thumbnail}} style={styles.channelImage} />
+          }}> */}
+          <View style={styles.channelButton}>
+            <View style={{position: 'relative'}}>
+                <Image source={{uri: item.thumbnail}} style={styles.channelImage} />
+            </View>
 
-            {isSelected && (
-              <View style={styles.selectedBadge}>
-                <MaterialIcons
-                  name="check-circle"
-                  size={18}
-                  color={AppColors.theme}
-                />
-              </View>
-            )}
+            <Text numberOfLines={1} style={styles.channelName}>
+                {item.name}
+            </Text>
           </View>
+        {/* </TouchableOpacity> */}
 
-          <Text numberOfLines={1} style={styles.channelName}>
-            {item.name}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.unsubscribeButton}
-          onPress={() => unsubscribeChannel(item.id)}>
-          <Text style={styles.unsubscribeText}>Unsubscribe</Text>
-        </TouchableOpacity>
+        <View style={styles.channelBtnContainer}>
+            <TouchableOpacity
+            style={{...styles.channelBtn, backgroundColor: AppColors.theme}}
+            onPress={() => navigation.navigate('Channel', {channelId: item.id, thumbnail: item.thumbnail})}>
+                <Text style={{...styles.channelBtnText, color: AppColors.white}}>Explore Channel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+            style={styles.channelBtn}
+            onPress={() => unsubscribeChannel(item.id)}>
+                <Text style={styles.channelBtnText}>Unsubscribe</Text>
+            </TouchableOpacity>
+        </View>
+        
       </View>
     );
   };
@@ -521,30 +521,28 @@ export default function VideoChannelAll() {
           <Text style={styles.noChannelsText}>No Subscribed Channels</Text>
         </View>
       ) : (
-        <View>
-          <FlatList
-            data={subscribedChannels}
-            horizontal
-            keyExtractor={(item, index) => item.id || `channel-${index}`}
-            renderItem={renderChannelItem}
-            showsHorizontalScrollIndicator={false}
-            style={{marginBottom: 10}}
-            onEndReachedThreshold={0.5}
-            onEndReached={() => {}}
-            ListFooterComponent={
-              loadingMoreVideos ? (
-                <ActivityIndicator
-                  size="large"
-                  color={AppColors.theme}
-                  style={{
-                    justifyContent: 'center',
-                    flex: 1,
-                  }}
-                />
-              ) : null
-            }
-          />
-          <View>
+        <View style={{ flex: 1 }}>
+            <FlatList
+                data={subscribedChannels}
+                keyExtractor={(item, index) => item.id || `channel-${index}`}
+                renderItem={renderChannelItem}
+                numColumns={2}                        // ✅ two columns
+                columnWrapperStyle={{ flex: 1 }}      // ✅ each row takes full width
+                contentContainerStyle={{ flexGrow: 1 }}
+                style={{ flex: 1 }}
+                onEndReachedThreshold={0.5}
+                onEndReached={() => {}}
+                ListFooterComponent={
+                loadingMoreVideos ? (
+                    <ActivityIndicator
+                    size="large"
+                    color={AppColors.theme}
+                    style={{ justifyContent: 'center', flex: 1 }}
+                    />
+                ) : null
+                }
+            />
+          {/* <View>
             <View
               style={{
                 flexDirection: 'row',
@@ -575,9 +573,9 @@ export default function VideoChannelAll() {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </View> */}
 
-          {isLoading ? (
+          {/* {isLoading ? (
             <AppLoader message="Loading videos..." />
           ) : (
             <FlatList
@@ -603,7 +601,7 @@ export default function VideoChannelAll() {
                 ) : null
               }
             />
-          )}
+          )} */}
         </View>
       )}
       <OptionsBottomSheet
@@ -626,18 +624,28 @@ export default function VideoChannelAll() {
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#fff', padding: 10},
-  channelCard: {alignItems: 'center', marginRight: 15, marginBottom: 40},
+  channelCard: {alignItems: 'center', flex: 1, maxWidth: "50%", marginBottom: 25},
   channelButton: {alignItems: 'center', marginBottom: 8},
   channelSelected: {borderColor: AppColors.theme, borderRadius: 10},
-  channelImage: {width: 60, height: 60, borderRadius: 40, marginBottom: 5},
-  channelName: {fontSize: 12, color: '#333', textAlign: 'center'},
-  unsubscribeButton: {
-    backgroundColor: '#ff5252',
+  channelImage: {width: 80, height: 80, borderRadius: 40, marginBottom: 5},
+  channelName: {fontSize: 16, color: '#333', textAlign: 'center'},
+  channelBtnContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    rowGap: 5
+  },
+  channelBtn: {
+    backgroundColor: AppColors.lightGray,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
   },
-  unsubscribeText: {color: '#fff', fontSize: 12},
+  channelBtnText: {
+    color: AppColors.darkGray,
+    textTransform: 'capitalize',
+    fontSize: 14
+},
   videoCard: {
     backgroundColor: '#f9f9f9',
     borderRadius: 10,
