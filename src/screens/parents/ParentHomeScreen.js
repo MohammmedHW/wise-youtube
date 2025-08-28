@@ -219,42 +219,42 @@ function HomeScreen() {
     return unsubscribe;
   }, [navigation]);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      const uniqueChannelIds = [
-        ...new Set(
-          videos
-            .filter(item => item.id?.channelId)
-            .map(item => item.id.channelId),
-        ),
-      ].filter(id => !channelStats[id]);
+  // useEffect(() => {
+  //   const fetchStats = async () => {
+  //     const uniqueChannelIds = [
+  //       ...new Set(
+  //         videos
+  //           .filter(item => item.id?.channelId)
+  //           .map(item => item.id.channelId),
+  //       ),
+  //     ].filter(id => !channelStats[id]);
 
-      if (uniqueChannelIds.length === 0) return;
+  //     if (uniqueChannelIds.length === 0) return;
 
-      try {
-        const response = await fetch(
-          `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${uniqueChannelIds.join(
-            ',',
-          )}&key=${API_KEY}`,
-        );
-        const data = await response.json();
+  //     try {
+  //       const response = await fetch(
+  //         `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${uniqueChannelIds.join(
+  //           ',',
+  //         )}&key=${API_KEY}`,
+  //       );
+  //       const data = await response.json();
 
-        const statsMap = {};
-        data.items.forEach(item => {
-          statsMap[item.id] = {
-            subscriberCount: item.statistics.subscriberCount,
-            videoCount: item.statistics.videoCount,
-          };
-        });
+  //       const statsMap = {};
+  //       data.items.forEach(item => {
+  //         statsMap[item.id] = {
+  //           subscriberCount: item.statistics.subscriberCount,
+  //           videoCount: item.statistics.videoCount,
+  //         };
+  //       });
 
-        setChannelStats(prev => ({...prev, ...statsMap}));
-      } catch (err) {
-        console.error('Error fetching stats:', err);
-      }
-    };
+  //       setChannelStats(prev => ({...prev, ...statsMap}));
+  //     } catch (err) {
+  //       console.error('Error fetching stats:', err);
+  //     }
+  //   };
 
-    fetchStats();
-  }, [videos]);
+  //   fetchStats();
+  // }, [videos]);
 
   useEffect(() => {
     const checkSubscriptions = async () => {
