@@ -38,6 +38,7 @@ import DropdownAlert, {
   DropdownAlertType,
 } from 'react-native-dropdownalert';
 import {AppContext} from '../../contextApi/AppContext';
+import {subscriptionService} from '../../services/subscriptionService';
 // import { AppContext } from './AppContext';
 
 function HomeScreen() {
@@ -417,41 +418,15 @@ function HomeScreen() {
     // setIsLoading(true);
 
     try {
-      const userId = await getUserId();
-      if (!userId) {
-        console.log('User ID not found!');
-        // setIsLoading(false);
-        return;
-      }
+      const result = await subscriptionService.fetchSubscribedChannels();
 
-      const requestData = {
-        action: 'GetData',
-        userid: userId,
-      };
-
-      const response = await fetch(
-        'http://timesride.com/custom/SubscribeAddDelete.php',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscribed channels');
-      }
-
-      const data = await response.json();
-
-      if (data.status === 'success' && data.data.length > 0) {
-        const subscribedChannelIds = data.data.map(item => item.channel_id);
-        console.log(subscribedChannelIds);
-        
-        setSubscribedChannels(subscribedChannelIds);
+      if (result.success) {
+        setSubscribedChannels(result.data);
+        if (result.fromCache) {
+          console.log('Loaded subscribed channels from cache');
+        }
       } else {
+        console.error('Error fetching subscribed channels:', result.error);
         setSubscribedChannels([]);
       }
     } catch (error) {
@@ -556,6 +531,7 @@ function HomeScreen() {
     }
   };
 
+  console.log('videos', videos);
   const fetchPlaylists = async () => {
     setLoadingPlaylists(true);
 
@@ -1109,8 +1085,23 @@ function HomeScreen() {
             })}
           </ScrollView>
         </View> */}
-        <View style={{marginHorizontal: 15, marginTop: 15, backgroundColor: AppColors.theme, borderRadius: 15, paddingVertical: 5}}>
-            <Text style={{fontFamily: AppFonts.Bold, fontSize: 24, color: 'white', textAlign: 'center'}}>{selectedCategory}</Text>
+        <View
+          style={{
+            marginHorizontal: 15,
+            marginTop: 15,
+            backgroundColor: AppColors.theme,
+            borderRadius: 15,
+            paddingVertical: 5,
+          }}>
+          <Text
+            style={{
+              fontFamily: AppFonts.Bold,
+              fontSize: 24,
+              color: 'white',
+              textAlign: 'center',
+            }}>
+            {selectedCategory}
+          </Text>
         </View>
         <View style={{marginHorizontal: 10, marginVertical: 15}}>
           <View
@@ -1190,7 +1181,10 @@ function HomeScreen() {
             data={videos}
             key={filterType === 'short' ? 'shorts' : filterType}
             keyExtractor={(item, index) =>
-              item?.id?.videoId || item?.id?.channelId || index.toString()
+              item?.id?.videoId ||
+              item?.id?.channelId ||
+              item?.id?.playlistId ||
+              index.toString()
             }
             renderItem={renderItem}
             numColumns={1}
