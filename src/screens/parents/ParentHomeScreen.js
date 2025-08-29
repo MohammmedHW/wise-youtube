@@ -338,42 +338,43 @@ function HomeScreen() {
       : 'subscribe';
 
       try {
-        const userId = await getUserId();
+        // const userId = await getUserId();
   
-        if (!userId) {
-          console.log('User ID not found!');
-          return;
-        }
+        // if (!userId) {
+        //   console.log('User ID not found!');
+        //   return;
+        // }
   
-        const requestData = {
-          action,
-          userid: userId,
-          channel_id: channelId,
-        };
+        // const requestData = {
+        //   action,
+        //   userid: userId,
+        //   channel_id: channelId,
+        // };
   
         setIsLoading(true);
   
-        const response = await fetch(
-          'http://timesride.com/custom/SubscribeAddDelete.php',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData),
-          },
-        );
+        // const response = await fetch(
+        //   'http://timesride.com/custom/SubscribeAddDelete.php',
+        //   {
+        //     method: 'POST',
+        //     headers: {
+        //       'Content-Type': 'application/json',
+        //     },
+        //     body: JSON.stringify(requestData),
+        //   },
+        // );
   
-        if (!response.ok) {
-          throw new Error(`Failed to ${action} channel`);
-        }
+        // if (!response.ok) {
+        //   throw new Error(`Failed to ${action} channel`);
+        // }
   
-        const data = await response.json();
+        // const data = await response.json();
+        const result = action=='subscribe' ? await subscriptionService.subscribeToChannel(channelId) : await subscriptionService.unsubscribeFromChannel(channelId);
   
-        if (data.status === 'success') {
+        if (result.success) {
           // await fetchSubscribedChannels();
-          if(action=='unsubscribe') setSubscribedChannels(prev => prev.filter(id => id!=channelId));
-          else setSubscribedChannels(prev => [channelId, ...prev]);
+          let channelIds = await subscriptionService.getCachedSubscribedChannels();
+          setSubscribedChannels(channelIds);
           alert({
             type: DropdownAlertType.Success,
             title: 'Success',

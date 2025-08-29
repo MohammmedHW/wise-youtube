@@ -128,47 +128,7 @@ export const subscriptionService = {
       }
 
       const requestData = {
-        action: 'AddData',
-        userid: userId,
-        channel_id: channelId,
-      };
-
-      const response = await fetch(
-        'http://timesride.com/custom/SubscribeAddDelete.php',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData),
-        },
-      );
-
-      const data = await response.json();
-
-      if (data.status === 'success') {
-        // Clear cache to force refresh next time
-        await subscriptionService.clearCache();
-        return {success: true};
-      } else {
-        return {success: false, error: data.message || 'Failed to subscribe'};
-      }
-    } catch (error) {
-      console.error('Error subscribing to channel:', error);
-      return {success: false, error: error.message};
-    }
-  },
-
-  // Unsubscribe from a channel
-  unsubscribeFromChannel: async channelId => {
-    try {
-      const userId = await subscriptionService.getUserId();
-      if (!userId) {
-        return {success: false, error: 'User ID not found'};
-      }
-
-      const requestData = {
-        action: 'DeleteData',
+        action: 'subscribe',
         userid: userId,
         channel_id: channelId,
       };
@@ -189,6 +149,52 @@ export const subscriptionService = {
       if (data.status === 'success') {
         // Clear cache to force refresh next time
         // await subscriptionService.clearCache();
+        let channelIds = await subscriptionService.getCachedSubscribedChannels();
+        channelIds = [channelId, ...channelIds];
+        await subscriptionService.cacheSubscribedChannels(channelIds)
+        return {success: true};
+      } else {
+        return {success: false, error: data.message || 'Failed to subscribe'};
+      }
+    } catch (error) {
+      console.error('Error subscribing to channel:', error);
+      return {success: false, error: error.message};
+    }
+  },
+
+  // Unsubscribe from a channel
+  unsubscribeFromChannel: async channelId => {
+    try {
+      const userId = await subscriptionService.getUserId();
+      if (!userId) {
+        return {success: false, error: 'User ID not found'};
+      }
+
+      const requestData = {
+        action: 'unsubscribe',
+        userid: userId,
+        channel_id: channelId,
+      };
+
+      const response = await fetch(
+        'http://timesride.com/custom/SubscribeAddDelete.php',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        // Clear cache to force refresh next time
+        // await subscriptionService.clearCache();
+        let channelIds = await subscriptionService.getCachedSubscribedChannels();
+        channelIds = channelIds.filter(id => id!=channelId);
+        await subscriptionService.cacheSubscribedChannels(channelIds)
         return {success: true};
       } else {
         return {success: false, error: data.message || 'Failed to unsubscribe'};
