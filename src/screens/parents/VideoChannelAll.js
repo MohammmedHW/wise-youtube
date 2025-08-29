@@ -256,51 +256,39 @@ export default function VideoChannelAll() {
     }
   };
 
-  const renderChannelItem = ({item}) => {
-    const isSelected = item.id === selectedChannel;
-    
-
-    return (
-      <View key={item.id} style={styles.channelCard}>
-        {/* <TouchableOpacity
-          style={styles.channelButton}
-          onPress={() => {
-            setVideoNextPage(null);
-            fetchChannelVideos(item.id);
-          }}> */}
-        <View style={styles.channelButton}>
-          <View style={{position: 'relative'}}>
-            <Image source={{uri: item.thumbnail}} style={styles.channelImage} />
-          </View>
-
-          <Text numberOfLines={1} style={styles.channelName}>
-            {item.name}
-          </Text>
+  const renderChannelItem = ({ item }) => {
+  return (
+    <View key={item.id} style={styles.channelCard}>
+      <TouchableOpacity
+        style={styles.channelButton}
+        onPress={() =>
+          navigation.navigate('Channel', {
+            channelId: item.id,
+            thumbnail: item.thumbnail,
+          })
+        }
+      >
+        <View style={{ position: 'relative' }}>
+          <Image source={{ uri: item.thumbnail }} style={styles.channelImage} />
         </View>
-        {/* </TouchableOpacity> */}
 
-        <View style={styles.channelBtnContainer}>
-          <TouchableOpacity
-            style={{...styles.channelBtn, backgroundColor: AppColors.theme}}
-            onPress={() =>
-              navigation.navigate('Channel', {
-                channelId: item.id,
-                thumbnail: item.thumbnail,
-              })
-            }>
-            <Text style={{...styles.channelBtnText, color: AppColors.white}}>
-              Explore Channel
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.channelBtn}
-            onPress={() => unsubscribeChannel(item.id)}>
-            <Text style={styles.channelBtnText}>Unsubscribe</Text>
-          </TouchableOpacity>
-        </View>
+        <Text numberOfLines={1} style={styles.channelName}>
+          {item.name}
+        </Text>
+      </TouchableOpacity>
+
+      <View style={styles.channelBtnContainer}>
+        <TouchableOpacity
+          style={styles.channelBtn}
+          onPress={() => unsubscribeChannel(item.id)}
+        >
+          <Text style={styles.channelBtnText}>Unsubscribe</Text>
+        </TouchableOpacity>
       </View>
-    );
-  };
+    </View>
+  );
+};
+
 
   const getRelativeTime = dateString => {
     const now = new Date();
@@ -580,6 +568,15 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: '50%',
     marginBottom: 25,
+    borderWidth: 1,
+    borderColor: '#eee',
+    margin: 5,
+    borderRadius: 10,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
   },
   channelButton: {alignItems: 'center', marginBottom: 8},
   channelSelected: {borderColor: AppColors.theme, borderRadius: 10},

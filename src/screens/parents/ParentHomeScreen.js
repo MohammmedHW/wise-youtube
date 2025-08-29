@@ -803,7 +803,7 @@ function HomeScreen() {
                 setSelectedVideoId(item.id.videoId);
                 sheetRef.current.open();
               }}>
-              {/* <MaterialIcons name="more-vert" size={24} color="#555" /> */}
+              <MaterialIcons name="more-vert" size={24} color="#555" />
             </TouchableOpacity>
           </View>
         </View>
@@ -913,7 +913,7 @@ function HomeScreen() {
               padding: 8,
               marginLeft: 8,
             }}>
-            {/* <MaterialIcons name="more-vert" size={24} color="#666" /> */}
+            <MaterialIcons name="more-vert" size={24} color="#666" />
           </TouchableOpacity>
         </TouchableOpacity>
       );
