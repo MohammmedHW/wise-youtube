@@ -98,59 +98,7 @@ const OptionsBottomSheet = ({
           backgroundColor: 'white',
         },
       }}>
-      <View style={{paddingVertical: 10, marginLeft: 10}}>
-        {/* Save to Playlist Option */}
-        <TouchableOpacity
-          onPress={() => {
-            fetchPlaylists();
-            sheetRef.current.close();
-            openPlaylistSheet();
-          }}
-          style={{flexDirection: 'row', alignItems: 'center'}}>
-          <MaterialIcons name="playlist-add" size={24} color="#333" />
-          <Text
-            style={{
-              fontSize: 16,
-              marginLeft: 10,
-              color: '#333',
-              fontFamily: AppFonts.Regular,
-            }}>
-            Add to Playlist
-          </Text>
-        </TouchableOpacity>
-
-        {/* Download Option */}
-        {/* <TouchableOpacity
-          onPress={handleDownload}
-          style={{flexDirection: 'row', alignItems: 'center', marginTop: 10}}>
-          <MaterialIcons name="file-download" size={24} color="#333" />
-          <Text
-            style={{
-              fontSize: 16,
-              marginLeft: 10,
-              color: '#333',
-              fontFamily: AppFonts.Regular,
-            }}>
-            Download Video
-          </Text>
-        </TouchableOpacity> */}
-
-        {/* Share Option */}
-        {/* <TouchableOpacity
-          onPress={handleShare}
-          style={{flexDirection: 'row', alignItems: 'center', marginTop: 10}}>
-          <MaterialIcons name="share" size={24} color="#333" />
-          <Text
-            style={{
-              fontSize: 16,
-              marginLeft: 10,
-              color: '#333',
-              fontFamily: AppFonts.Regular,
-            }}>
-            Share
-          </Text>
-        </TouchableOpacity> */}
-      </View>
+      
     </RBSheet>
   );
 };

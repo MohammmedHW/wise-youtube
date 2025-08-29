@@ -21,6 +21,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AppFonts from '../../utils/AppFonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+
 const ICON_OPTIONS = [
   'book-outline',
   'musical-notes-outline',
@@ -49,24 +50,46 @@ export default function ParentPlaylistScreen() {
     }, [])
   );
 
-  // ✅ API to fetch videos of a playlist
-  const fetchPlaylistDetails = async (playlistId) => {
-    try {
-      const response = await fetch(
-        'http://timesride.com/custom/GetPlayListVideos.php',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playlist_id: playlistId.toString() }),
-        }
-      );
-      const data = await response.json();
-      return data;
-    } catch (e) {
-      console.log('Error fetching playlist details:', e);
-      return null;
+
+const fetchPlaylistDetails = async (playlistId) => {
+  try {
+    const email = await AsyncStorage.getItem('userUserName');
+    if (!email) {
+      return { status: 'error', videos: [] };
     }
-  };
+
+    const response = await Playlist.getPlaylistDetails({
+      email_id: email,
+      playlist_id: playlistId,
+    });
+
+    if (response.status === 'success') {
+      const items = response.videos || [];
+      const videoDetails = items.map((item) => {
+        const ytId = getYouTubeId(item.video_link);  // ✅ fixed
+        return {
+          key: item.video_id,
+          videoId: item.video_id,
+          videoLink: item.video_link,
+          title: item.title || 'Unknown Title',
+          description: item.description || '',
+          thumbnail: ytId
+            ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+            : '',
+        };
+      });
+
+      console.log("✅ Mapped Videos:", videoDetails);
+      return { status: 'success', videos: videoDetails };
+    }
+
+    return { status: 'error', videos: [] };
+  } catch (err) {
+    console.log('Error fetching playlist videos:', err);
+    return { status: 'error', videos: [] };
+  }
+};
+
 
   const fetchPlaylists = async () => {
     setLoading(true);
@@ -189,56 +212,66 @@ export default function ParentPlaylistScreen() {
   };
 
   const renderItem = ({ item }) => {
-    const videoCount = item.videos?.length || 0;
-    const firstVideo = item.videos?.[0];
-    const videoId = firstVideo ? getYouTubeId(firstVideo.video_link) : null;
-    const thumbnailUrl = videoId
-      ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-      : null;
+  const videoCount = item.videos?.length || 0;
+  const firstVideo = item.videos?.[0];
 
-    return (
-      <TouchableOpacity
-        onPress={() => {
-          navigation.navigate('PlayList Details', {
-            playlistId: item.playlist_id,
-            playlistName: item.playlist_Name,
-          });
-        }}
-        delayLongPress={2000}
-        onLongPress={() => {
-          Alert.alert(
-            'Delete Playlist',
-            `Are you sure you want to delete "${item.playlist_Name}"?`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => deletePlaylist(item.playlist_id),
-              },
-            ]
-          );
-        }}
-        style={styles.card}
-        activeOpacity={0.8}
-      >
-        <View style={styles.iconWrapper}>
-          {thumbnailUrl ? (
-            <Image
-              source={{ uri: thumbnailUrl }}
-              style={{ width: 80, height: 80, borderRadius: 10 }}
-            />
-          ) : (
-            <Ionicons name="folder-outline" size={50} color="yellow" />
-          )}
+  return (
+    <TouchableOpacity
+      onPress={() => {
+        navigation.navigate("PlayList Details", {
+          playlistId: item.playlist_id,
+          playlistName: item.playlist_Name,
+        });
+      }}
+      delayLongPress={2000}
+      onLongPress={() => {
+        Alert.alert(
+          "Delete Playlist",
+          `Are you sure you want to delete "${item.playlist_Name}"?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Delete",
+              style: "destructive",
+              onPress: () => deletePlaylist(item.playlist_id),
+            },
+          ]
+        );
+      }}
+      activeOpacity={0.85}
+      style={styles.card}
+    >
+      {videoCount > 0 && firstVideo?.thumbnail ? (
+        <>
+          <Image
+            source={{ uri: firstVideo.thumbnail }}
+            style={styles.thumbnail}
+            resizeMode="cover"
+          />
+          <View style={styles.textWrapper}>
+            <Text style={styles.title} numberOfLines={1}>
+              {item.playlist_Name}
+            </Text>
+            <Text style={styles.count}>
+              {videoCount > 0 ? `${videoCount} videos` : "No videos"}
+            </Text>
+          </View>
+        </>
+      ) : (
+        <View style={styles.emptyWrapper}>
+          <Ionicons name="folder-outline" size={50} color={AppColors.theme} />
+          <Text style={styles.title} numberOfLines={1}>
+            {item.playlist_Name}
+          </Text>
+          <Text style={styles.count}>
+            {videoCount > 0 ? `${videoCount} videos` : "No videos"}
+          </Text>
         </View>
-        <Text style={styles.title} numberOfLines={1}>
-          {item.playlist_Name}
-        </Text>
-        <Text style={styles.count}>{videoCount} videos</Text>
-      </TouchableOpacity>
-    );
-  };
+      )}
+    </TouchableOpacity>
+  );
+};
+
 
   return (
     <View style={styles.container}>
@@ -252,7 +285,7 @@ export default function ParentPlaylistScreen() {
           }
           renderItem={renderItem}
           numColumns={2}
-          columnWrapperStyle={{ justifyContent: 'space-between' }}
+          columnWrapperStyle={{ justifyContent: "space-between" }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -267,8 +300,8 @@ export default function ParentPlaylistScreen() {
         <ScrollView
           contentContainerStyle={{
             flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
+            justifyContent: "center",
+            alignItems: "center",
           }}
           refreshControl={
             <RefreshControl
@@ -304,15 +337,12 @@ export default function ParentPlaylistScreen() {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: '#ccc' }]}
+                style={[styles.modalButton, { backgroundColor: "#ccc" }]}
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={createPlaylist}
-              >
+              <TouchableOpacity style={styles.modalButton} onPress={createPlaylist}>
                 <Text style={styles.modalButtonText}>Create</Text>
               </TouchableOpacity>
             </View>
@@ -324,72 +354,112 @@ export default function ParentPlaylistScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
+  container: { flex: 1, backgroundColor: "#fff", padding: 16 },
+
+  // Playlist Card
   card: {
-    borderRadius: 16,
+  flex: 0.48,
+  marginBottom: 16,
+  borderRadius: 14,
+  backgroundColor: "#fafafa",
+  overflow: "hidden",
+
+  // iOS shadow
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.1,
+  shadowRadius: 6,
+
+  // Android shadow
+  elevation: 3,
+},
+
+
+  thumbnail: {
+    width: "100%",
+    height: 140,
+  },
+
+  textWrapper: {
+    padding: 10,
+    alignItems: "center",
+  },
+
+  emptyWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    flex: 0.48,
-    borderWidth: 1,
-    borderColor: 'black',
-    backgroundColor: '#fafafa',
-    minHeight: 160,
+    height: 180,
   },
-  iconWrapper: {
-    borderRadius: 10,
-    padding: 8,
-    marginBottom: 12,
-  },
+
   title: {
     fontSize: 16,
     fontFamily: AppFonts.Medium,
-    color: '#000',
-    textAlign: 'center',
+    color: "#000",
+    marginTop: 6,
+    textAlign: "center",
   },
+
   count: {
-    fontSize: 14,
-    color: '#555',
+    fontSize: 13,
+    color: "#555",
     fontFamily: AppFonts.Light,
+    marginTop: 2,
+    textAlign: "center",
   },
+
+  // Floating Action Button
   fab: {
-    position: 'absolute',
+    position: "absolute",
     right: 16,
     bottom: 16,
     backgroundColor: AppColors.theme,
     borderRadius: 30,
     padding: 14,
     elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.5,
   },
+
+  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
+
   modalBox: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 20,
     width: 320,
     borderRadius: 12,
   },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+
+  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
+
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     padding: 10,
     borderRadius: 8,
     marginBottom: 16,
+    fontSize: 14,
   },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-between' },
+
+  modalActions: { flexDirection: "row", justifyContent: "space-between" },
+
   modalButton: {
     backgroundColor: AppColors.theme,
     padding: 10,
     borderRadius: 8,
-    width: '45%',
-    alignItems: 'center',
+    width: "45%",
+    alignItems: "center",
   },
-  modalButtonText: { color: '#fff', fontWeight: 'bold' },
-  noData: { fontSize: 16, color: '#999' },
+
+  modalButtonText: { color: "#fff", fontWeight: "bold" },
+
+  noData: { fontSize: 16, color: "#999" },
 });

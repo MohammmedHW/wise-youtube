@@ -318,26 +318,7 @@ function ParentVideoDetailScreen({route}) {
             </Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <TouchableHighlight
-          style={{
-            backgroundColor: AppColors.theme, // Adjust the background color
-            paddingVertical: 8, // Adjust padding for the button
-            paddingHorizontal: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          onPress={() => navigation.navigate('Create Playlist')}>
-          <Text
-            style={{
-              fontSize: 16,
-              color: '#fff',
-              fontFamily: AppFonts.Medium, // Or your preferred font
-            }}>
-            Add To Playlist
-          </Text>
-        </TouchableHighlight>
-      )}
+      ) : null}
 
       {relatedVideos.length > 0 && (
         <View style={{padding: 10}}>
