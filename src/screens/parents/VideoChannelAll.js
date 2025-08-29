@@ -25,6 +25,7 @@ import DropdownAlert, {
   DropdownAlertData,
   DropdownAlertType,
 } from 'react-native-dropdownalert';
+import {subscriptionService} from '../../services/subscriptionService';
 const API_KEY = config.cli.api_key;
 
 export default function VideoChannelAll() {
@@ -49,50 +50,14 @@ export default function VideoChannelAll() {
       fetchSubscribedChannels();
     }, []),
   );
-  const getUserId = async () => {
-    try {
-      const userId = await AsyncStorage.getItem('userId');
-      if (userId !== null) {
-        return userId;
-      }
-    } catch (error) {
-      console.error('Error getting userId from AsyncStorage', error);
-    }
-    return null;
-  };
+  // Removed getUserId - now using subscriptionService
 
   const fetchSubscribedChannels = async () => {
     try {
-      const userId = await getUserId();
-      if (!userId) {
-        console.log('User ID not found!');
-        return;
-      }
+      const result = await subscriptionService.fetchSubscribedChannels();
 
-      const requestData = {
-        action: 'GetData',
-        userid: userId,
-      };
-
-      const response = await fetch(
-        'http://timesride.com/custom/SubscribeAddDelete.php',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscribed channels');
-      }
-
-      const data = await response.json();
-
-      if (data.status === 'success' && data.data.length > 0) {
-        const channelIds = data.data.map(item => item.channel_id).join(',');
+      if (result.success && result.data.length > 0) {
+        const channelIds = result.data.join(',');
 
         const detailsResponse = await fetch(
           `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelIds}&key=${API_KEY}`,
@@ -108,9 +73,12 @@ export default function VideoChannelAll() {
         const sortedChannels = formattedChannels.reverse();
         setSubscribedChannels(sortedChannels);
 
-        // fetchChannelVideos(sortedChannels[0].id);
         setSelectedChannel(sortedChannels[0].id);
-        setVideoFilter('none')
+        setVideoFilter('none');
+
+        if (result.fromCache) {
+          console.log('Loaded subscribed channels from cache');
+        }
       } else {
         setSubscribedChannels([]);
         setIsLoading(false);
@@ -123,43 +91,15 @@ export default function VideoChannelAll() {
     }
   };
 
-
-
   const unsubscribeChannel = async channelId => {
     try {
-      const userId = await getUserId();
-
-      if (!userId) {
-        console.log('User ID not found!');
-        return;
-      }
-
-      const requestData = {
-        action: 'unsubscribe',
-        userid: userId,
-        channel_id: channelId,
-      };
-
       setIsLoading(true);
 
-      const response = await fetch(
-        'http://timesride.com/custom/SubscribeAddDelete.php',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData),
-        },
+      const result = await subscriptionService.unsubscribeFromChannel(
+        channelId,
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to unsubscribe channel');
-      }
-
-      const data = await response.json();
-
-      if (data.status === 'success') {
+      if (result.success) {
         await fetchSubscribedChannels();
         alert({
           type: DropdownAlertType.Success,
@@ -170,7 +110,7 @@ export default function VideoChannelAll() {
         alert({
           type: DropdownAlertType.Error,
           title: 'Error',
-          message: 'Failed to unsubscribe channel',
+          message: result.error || 'Failed to unsubscribe channel',
         });
       }
     } catch (error) {
@@ -323,30 +263,36 @@ export default function VideoChannelAll() {
             setVideoNextPage(null);
             fetchChannelVideos(item.id);
           }}> */}
-          <View style={styles.channelButton}>
-            <View style={{position: 'relative'}}>
-                <Image source={{uri: item.thumbnail}} style={styles.channelImage} />
-            </View>
-
-            <Text numberOfLines={1} style={styles.channelName}>
-                {item.name}
-            </Text>
+        <View style={styles.channelButton}>
+          <View style={{position: 'relative'}}>
+            <Image source={{uri: item.thumbnail}} style={styles.channelImage} />
           </View>
+
+          <Text numberOfLines={1} style={styles.channelName}>
+            {item.name}
+          </Text>
+        </View>
         {/* </TouchableOpacity> */}
 
         <View style={styles.channelBtnContainer}>
-            <TouchableOpacity
+          <TouchableOpacity
             style={{...styles.channelBtn, backgroundColor: AppColors.theme}}
-            onPress={() => navigation.navigate('Channel', {channelId: item.id, thumbnail: item.thumbnail})}>
-                <Text style={{...styles.channelBtnText, color: AppColors.white}}>Explore Channel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('Channel', {
+                channelId: item.id,
+                thumbnail: item.thumbnail,
+              })
+            }>
+            <Text style={{...styles.channelBtnText, color: AppColors.white}}>
+              Explore Channel
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.channelBtn}
             onPress={() => unsubscribeChannel(item.id)}>
-                <Text style={styles.channelBtnText}>Unsubscribe</Text>
-            </TouchableOpacity>
+            <Text style={styles.channelBtnText}>Unsubscribe</Text>
+          </TouchableOpacity>
         </View>
-        
       </View>
     );
   };
@@ -471,17 +417,16 @@ export default function VideoChannelAll() {
     }
   };
 
-    // useEffect(() => {
-    //   const isFocused = navigation.addListener('focus', () => {
-    //     setVideoFilter('none')
-    //   });
-    //   return isFocused;
-    // }, [navigation]);
-
+  // useEffect(() => {
+  //   const isFocused = navigation.addListener('focus', () => {
+  //     setVideoFilter('none')
+  //   });
+  //   return isFocused;
+  // }, [navigation]);
 
   useEffect(() => {
-	console.log("TCL: videoFilter", videoFilter)
-  console.log("TCL: selectedChannel", selectedChannel)
+    console.log('TCL: videoFilter', videoFilter);
+    console.log('TCL: selectedChannel', selectedChannel);
 
     if (selectedChannel) {
       fetchChannelVideos(selectedChannel);
@@ -521,27 +466,27 @@ export default function VideoChannelAll() {
           <Text style={styles.noChannelsText}>No Subscribed Channels</Text>
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
-            <FlatList
-                data={subscribedChannels}
-                keyExtractor={(item, index) => item.id || `channel-${index}`}
-                renderItem={renderChannelItem}
-                numColumns={2}                        // ✅ two columns
-                columnWrapperStyle={{ flex: 1 }}      // ✅ each row takes full width
-                contentContainerStyle={{ flexGrow: 1 }}
-                style={{ flex: 1 }}
-                onEndReachedThreshold={0.5}
-                onEndReached={() => {}}
-                ListFooterComponent={
-                loadingMoreVideos ? (
-                    <ActivityIndicator
-                    size="large"
-                    color={AppColors.theme}
-                    style={{ justifyContent: 'center', flex: 1 }}
-                    />
-                ) : null
-                }
-            />
+        <View style={{flex: 1}}>
+          <FlatList
+            data={subscribedChannels}
+            keyExtractor={(item, index) => item.id || `channel-${index}`}
+            renderItem={renderChannelItem}
+            numColumns={2} // ✅ two columns
+            columnWrapperStyle={{flex: 1}} // ✅ each row takes full width
+            contentContainerStyle={{flexGrow: 1}}
+            style={{flex: 1}}
+            onEndReachedThreshold={0.5}
+            onEndReached={() => {}}
+            ListFooterComponent={
+              loadingMoreVideos ? (
+                <ActivityIndicator
+                  size="large"
+                  color={AppColors.theme}
+                  style={{justifyContent: 'center', flex: 1}}
+                />
+              ) : null
+            }
+          />
           {/* <View>
             <View
               style={{
@@ -624,7 +569,12 @@ export default function VideoChannelAll() {
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#fff', padding: 10},
-  channelCard: {alignItems: 'center', flex: 1, maxWidth: "50%", marginBottom: 25},
+  channelCard: {
+    alignItems: 'center',
+    flex: 1,
+    maxWidth: '50%',
+    marginBottom: 25,
+  },
   channelButton: {alignItems: 'center', marginBottom: 8},
   channelSelected: {borderColor: AppColors.theme, borderRadius: 10},
   channelImage: {width: 80, height: 80, borderRadius: 40, marginBottom: 5},
@@ -633,7 +583,7 @@ const styles = StyleSheet.create({
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    rowGap: 5
+    rowGap: 5,
   },
   channelBtn: {
     backgroundColor: AppColors.lightGray,
@@ -644,8 +594,8 @@ const styles = StyleSheet.create({
   channelBtnText: {
     color: AppColors.darkGray,
     textTransform: 'capitalize',
-    fontSize: 14
-},
+    fontSize: 14,
+  },
   videoCard: {
     backgroundColor: '#f9f9f9',
     borderRadius: 10,

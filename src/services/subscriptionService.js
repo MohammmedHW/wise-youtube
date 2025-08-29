@@ -1,205 +1,201 @@
-import { endpoints } from './endpoints';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const getSubscriptionPlans = (token) =>
-    new Promise((resolve, reject) => {
-        axios
-            .get(`${endpoints.subscription.getPlans}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token
-                },
-            })
-        .then((response) => resolve(response.data))
-        .catch((error) => reject(error));
-});
+const CACHE_KEY = 'subscribedChannels';
+const CACHE_EXPIRY_KEY = 'subscribedChannelsExpiry';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-const placeOrder = (body, token) =>
-  new Promise((resolve, reject) => {
-    axios
-      .post(`${endpoints.subscription.placeOrder}`, body, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token,
+export const subscriptionService = {
+  // Get user ID helper
+  getUserId: async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      return userId;
+    } catch (error) {
+      console.error('Error getting user ID:', error);
+      return null;
+    }
+  },
+
+  // Check if cache is valid
+  isCacheValid: async () => {
+    try {
+      const expiry = await AsyncStorage.getItem(CACHE_EXPIRY_KEY);
+      if (!expiry) return false;
+      return Date.now() < parseInt(expiry);
+    } catch (error) {
+      return false;
+    }
+  },
+
+  // Get cached subscribed channels
+  getCachedSubscribedChannels: async () => {
+    try {
+      const isValid = await subscriptionService.isCacheValid();
+      if (!isValid) return null;
+
+      const cached = await AsyncStorage.getItem(CACHE_KEY);
+      return cached ? JSON.parse(cached) : null;
+    } catch (error) {
+      console.error('Error getting cached channels:', error);
+      return null;
+    }
+  },
+
+  // Cache subscribed channels
+  cacheSubscribedChannels: async channels => {
+    try {
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(channels));
+      await AsyncStorage.setItem(
+        CACHE_EXPIRY_KEY,
+        (Date.now() + CACHE_DURATION).toString(),
+      );
+    } catch (error) {
+      console.error('Error caching channels:', error);
+    }
+  },
+
+  // Clear cache
+  clearCache: async () => {
+    try {
+      await AsyncStorage.multiRemove([CACHE_KEY, CACHE_EXPIRY_KEY]);
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+    }
+  },
+
+  // Fetch subscribed channels with caching
+  fetchSubscribedChannels: async (forceRefresh = false) => {
+    try {
+      // Check cache first unless force refresh
+      if (!forceRefresh) {
+        const cached = await subscriptionService.getCachedSubscribedChannels();
+        if (cached) {
+          return {success: true, data: cached, fromCache: true};
+        }
+      }
+
+      const userId = await subscriptionService.getUserId();
+      if (!userId) {
+        return {success: false, error: 'User ID not found'};
+      }
+
+      const requestData = {
+        action: 'GetData',
+        userid: userId,
+      };
+
+      const response = await fetch(
+        'http://timesride.com/custom/SubscribeAddDelete.php',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
         },
-      })
-      .then((response) => resolve(response.data))
-      .catch((error) => reject(error));
-  });
+      );
 
-const API_URL = 'http://timesride.com/custom/subscriptondb.php';
+      if (!response.ok) {
+        throw new Error('Failed to fetch subscribed channels');
+      }
 
-class SubscriptionService {
-    static async addSubscription(subscriptionData) {
-        try {
-            console.log("SubscriptionService: Sending subscription data:", JSON.stringify(subscriptionData, null, 2));
-            const response = await axios.post(API_URL, subscriptionData);
-            console.log("SubscriptionService: Raw response:", response);
-            console.log("SubscriptionService: Response data:", response.data);
-            
-            if (!response.data) {
-                throw new Error('No data received from server');
-            }
-            
-            return response.data;
-        } catch (error) {
-            console.error('SubscriptionService: Error adding subscription:', error.response?.data || error.message);
-            if (error.response) {
-                console.error('SubscriptionService: Response status:', error.response.status);
-                console.error('SubscriptionService: Response headers:', error.response.headers);
-            }
-            throw error;
-        }
+      const data = await response.json();
+
+      if (data.status === 'success' && data.data.length > 0) {
+        const subscribedChannelIds = data.data.map(item => item.channel_id);
+
+        // Cache the result
+        await subscriptionService.cacheSubscribedChannels(subscribedChannelIds);
+
+        return {success: true, data: subscribedChannelIds, fromCache: false};
+      } else {
+        // Cache empty result too
+        await subscriptionService.cacheSubscribedChannels([]);
+        return {success: true, data: [], fromCache: false};
+      }
+    } catch (error) {
+      console.error('Error fetching subscribed channels:', error);
+      return {success: false, error: error.message};
     }
+  },
 
-    static async getSubscription(email) {
-        try {
-            const response = await axios.post(API_URL, {
-                action: 'get_subscription',
-                email: email
-            });
-            return response.data;
-        } catch (error) {
-            console.error('Error getting subscription:', error);
-            throw error;
-        }
+  // Subscribe to a channel
+  subscribeToChannel: async channelId => {
+    try {
+      const userId = await subscriptionService.getUserId();
+      if (!userId) {
+        return {success: false, error: 'User ID not found'};
+      }
+
+      const requestData = {
+        action: 'AddData',
+        userid: userId,
+        channel_id: channelId,
+      };
+
+      const response = await fetch(
+        'http://timesride.com/custom/SubscribeAddDelete.php',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        // Clear cache to force refresh next time
+        await subscriptionService.clearCache();
+        return {success: true};
+      } else {
+        return {success: false, error: data.message || 'Failed to subscribe'};
+      }
+    } catch (error) {
+      console.error('Error subscribing to channel:', error);
+      return {success: false, error: error.message};
     }
+  },
 
-    static async addTrialSubscription(email) {
-        try {
-            // First check if subscription exists
-            const checkData = {
-                action: "get_subscription",
-                email: email
-            };
+  // Unsubscribe from a channel
+  unsubscribeFromChannel: async channelId => {
+    try {
+      const userId = await subscriptionService.getUserId();
+      if (!userId) {
+        return {success: false, error: 'User ID not found'};
+      }
 
-            const checkResponse = await axios.post(API_URL, checkData);
-            
-            // If no subscription found, proceed with adding trial
-            if (checkResponse.data.status === 'error' && checkResponse.data.message === 'No subscriptions found for this email.') {
-                const now = new Date();
-                const expiryDate = new Date(now);
-                expiryDate.setDate(now.getDate() + 3); // 3 days trial
+      const requestData = {
+        action: 'DeleteData',
+        userid: userId,
+        channel_id: channelId,
+      };
 
-                const trialData = {
-                    email: email,
-                    product_id: "",
-                    purchase_token: "",
-                    order_id: "",
-                    platform: "android",
-                    price: "",
-                    purchase_date: now.toISOString().slice(0, 19).replace('T', ' '),
-                    expiry_date: expiryDate.toISOString().slice(0, 19).replace('T', ' '),
-                    is_trial: true,
-                    status: "active"
-                };
+      const response = await fetch(
+        'http://timesride.com/custom/SubscribeAddDelete.php',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        },
+      );
 
-                const response = await axios.post(API_URL, trialData);
-                
-                if (response.data.success) {
-                    // Store trial data in AsyncStorage
-                    await AsyncStorage.setItem('trialData', JSON.stringify({
-                        startDate: now.toISOString(),
-                        expiryDate: expiryDate.toISOString(),
-                        isActive: true,
-                        daysRemaining: 3
-                    }));
-                }
-                
-                return response.data;
-            } else {
-                // Subscription already exists
-                return {
-                    status: 'error',
-                    message: 'Subscription already exists for this email'
-                };
-            }
-        } catch (error) {
-            console.error('Error adding trial subscription:', error);
-            throw error;
-        }
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        // Clear cache to force refresh next time
+        await subscriptionService.clearCache();
+        return {success: true};
+      } else {
+        return {success: false, error: data.message || 'Failed to unsubscribe'};
+      }
+    } catch (error) {
+      console.error('Error unsubscribing from channel:', error);
+      return {success: false, error: error.message};
     }
-
-    static async checkSubscriptionStatus(email) {
-        try {
-            const response = await axios.post(API_URL, {
-                action: 'get_subscription',
-                email: email
-            });
-            return response.data;
-        } catch (error) {
-            console.error('Error checking subscription status:', error);
-            throw error;
-        }
-    }
-
-    static async updateTrialStatus(email, isActive) {
-        try {
-            const response = await axios.post(API_URL, {
-                action: 'update_trial',
-                email: email,
-                is_active: isActive
-            });
-            return response.data;
-        } catch (error) {
-            console.error('Error updating trial status:', error);
-            throw error;
-        }
-    }
-
-    static async resetTrialStatus(email) {
-        try {
-            const response = await axios.post(API_URL, {
-                action: 'reset_trial',
-                email: email
-            });
-            return response.data;
-        } catch (error) {
-            console.error('Error resetting trial status:', error);
-            throw error;
-        }
-    }
-
-    static async getTrialStatus(email) {
-        try {
-            const response = await axios.post(API_URL, {
-                action: 'get_subscription',
-                email: email
-            });
-
-            if (response.data.success) {
-                const subscription = response.data.data;
-                if (subscription.is_trial) {
-                    const now = new Date();
-                    const expiryDate = new Date(subscription.expiry_date);
-                    const daysRemaining = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
-
-                    // Update local storage with latest data
-                    await AsyncStorage.setItem('trialData', JSON.stringify({
-                        startDate: subscription.purchase_date,
-                        expiryDate: subscription.expiry_date,
-                        isActive: daysRemaining > 0,
-                        daysRemaining: Math.max(0, daysRemaining)
-                    }));
-
-                    return {
-                        isActive: daysRemaining > 0,
-                        daysRemaining,
-                        expiryDate: subscription.expiry_date
-                    };
-                }
-            }
-            return null;
-        } catch (error) {
-            console.error('Error getting trial status:', error);
-            throw error;
-        }
-    }
-}
-
-export default SubscriptionService;
-
-export {
-    getSubscriptionPlans, placeOrder
-}
+  },
+};
