@@ -1,0 +1,87 @@
+const parentLogin = async () => {
+    try {
+      if (!userName || !password) {
+        Alert.alert('Error', 'Please fill in all fields');
+        return;
+      }
+      setisLoading(true);
+      console.log('Attempting login with:', {email: userName, password});
+
+      // First, sign in with Firebase using new approach
+      // const app = getApp();
+      // const auth = getAuth(app);
+      // const userCredential = await signInWithEmailAndPassword(auth, userName, password);
+      // console.log('Firebase auth successful:', userCredential.user.uid);
+      //  const resssss = await  getUserByEmail(userName)
+
+      let showTrialAlert = false;
+      //  if (resssss?.data?.last_loggedIn==null) {
+      //   showTrialAlert = true
+      //  }
+      // Then proceed with your API login
+      const response = await Auth.login({
+        action: 'login',
+        email: userName,
+        password: password,
+      });
+      console.log('Login response:', response);
+
+      if (response?.data?.status === 'success' && response?.data?.data?.token) {
+        console.log('Login successful, storing data...');
+
+        // Clear any existing data first
+        await AsyncStorage.multiRemove([
+          'userUserName',
+          'userParentFirstName',
+          'userParentLastName',
+          'userParentEmail',
+          'token',
+          'userId',
+          'role',
+          'loginDate',
+          'trialStatus',
+        ]);
+
+        // Store new data
+        await AsyncStorage.multiSet([
+          ['userUserName', response.data.data.email],
+          ['userParentFirstName', response.data.data.first_name],
+          ['userParentLastName', response.data.data.last_name],
+          ['userParentEmail', response.data.data.email],
+          ['token', response.data.data.token],
+          ['userId', response.data.data.id.toString()],
+          ['role', 'admin'],
+          ['loginDate', new Date().toISOString()],
+        ]);
+
+        // Check if trial status exists
+        const trialData = await SubscriptionService.getSubscription(userName);
+        console.log('trialData from LoginScreen', trialData);
+        if (!trialData) {
+          // No trial data found, it will be handled by App.js
+          console.log('No trial data found, will show trial screen');
+          console.log('TCL: parentLogin -> showTrialAlert', showTrialAlert);
+        }
+
+        console.log('Data stored, calling onLoginSuccess');
+        onLoginSuccess(response.data.data, showTrialAlert);
+      } else {
+        // If API login fails, sign out from Firebase
+        const app = getApp();
+        const auth = getAuth(app);
+        await signOut(auth);
+        console.log('Login failed - invalid response');
+        Alert.alert('Error', response?.data?.message || 'Login failed');
+      }
+    } catch (error) {
+      console.log('TCL: parentLogin -> error', error);
+      // If any error occurs, sign out from Firebase
+      const app = getApp();
+      const auth = getAuth(app);
+      await signOut(auth);
+      console.log('Login error:', error);
+      Alert.alert('Error', error?.response?.data?.message || 'Login failed');
+    } finally {
+      setisLoading(false);
+    }
+  };

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,9 +15,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import {Auth} from '../../services';
-import {CheckBox} from 'react-native-elements';
+import { useNavigation } from '@react-navigation/native';
+import { Auth } from '../../services';
+import { CheckBox } from 'react-native-elements';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tickImage from '../../assets/icons/tick.png';
 import untickImage from '../../assets/icons/untick.png';
@@ -28,9 +28,9 @@ import DropdownAlert, {
 } from 'react-native-dropdownalert';
 import AppLoader from '../../components/AppLoader';
 import AppColors from '../../utils/AppColors';
-import {Dropdown} from 'react-native-element-dropdown';
+import { Dropdown } from 'react-native-element-dropdown';
 
-const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
+const ParentSignUpScreen = ({ onLoginSuccess, setIsLogInScreen }) => {
   const navigation = useNavigation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -78,11 +78,11 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
   };
 
   const countryCodes = [
-    {label: 'USA (+1)', value: '+1'},
-    {label: 'UK (+44)', value: '+44'},
-    {label: 'India (+91)', value: '+91'},
-    {label: 'Canada (+1)', value: '+1'},
-    {label: 'Australia (+61)', value: '+61'},
+    { label: 'USA (+1)', value: '+1' },
+    { label: 'UK (+44)', value: '+44' },
+    { label: 'India (+91)', value: '+91' },
+    { label: 'Canada (+1)', value: '+1' },
+    { label: 'Australia (+61)', value: '+61' },
   ];
 
   const handleLogin = () => {
@@ -130,24 +130,23 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
           title: 'Success',
           message: 'Sign up successful',
         });
+
+        // Reset input fields
         setEmail('');
         setPassword('');
         setPhone('');
         setOtp('');
         setAgreedToTerms('');
-        //   await AsyncStorage.setItem('token', data.token);
-        //   await AsyncStorage.setItem('userId', data.userId);
-        //   await AsyncStorage.setItem('role', data.role);
-        //   // Store the signup date
-        //   await AsyncStorage.setItem('loginDate', new Date().toISOString());
-        //   onLoginSuccess();
-        // } else {
-        //   alert({
-        //     type: DropdownAlertType.Error,
-        //     title: 'Error',
-        //     message: data.message || 'Sign up failed',
-        //   });
+
+      
+      } else {
+        alert({
+          type: DropdownAlertType.Error,
+          title: 'Error',
+          message: response?.data?.message || 'Sign up failed',
+        });
       }
+
     } catch (error) {
       console.log('TCL: handleSignUp -> error', error);
       alert({
@@ -168,7 +167,7 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 
     setLoading(true);
     try {
-      const result = await Auth.generateOtp({email});
+      const result = await Auth.generateOtp({ email });
 
       if (result && (result.status === 200 || result.status === 201)) {
         if (result.data.message === 'OTP sent successfully') {
@@ -189,7 +188,7 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
         Alert.alert('OTP Failed', 'Failed to send OTP. Please try again.');
       }
     } catch (err) {
-			console.log("TCL: sendOtp -> err", err)
+      console.log("TCL: sendOtp -> err", err)
       console.log(err);
       Alert.alert('Error', 'Something went wrong while sending OTP.');
     } finally {
@@ -248,7 +247,7 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{flex: 1}}>
+        style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
@@ -278,10 +277,10 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
                 placeholder="Select Country"
                 value={selectedCountry}
                 onChange={item => setSelectedCountry(item)}
-                containerStyle={{borderRadius: 8}}
-                itemTextStyle={{fontSize: 14}}
-                selectedTextStyle={{fontSize: 14}}
-                placeholderStyle={{color: '#999'}}
+                containerStyle={{ borderRadius: 8 }}
+                itemTextStyle={{ fontSize: 14 }}
+                selectedTextStyle={{ fontSize: 14 }}
+                placeholderStyle={{ color: '#999' }}
                 fontFamily={AppFonts.Regular}
               />
               <TextInput
@@ -294,14 +293,14 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
 
               <TouchableOpacity
                 onPress={sendOtp}
-                style={[styles.loginButton, {backgroundColor: '#6a5acd'}]}>
+                style={[styles.loginButton, { backgroundColor: '#6a5acd' }]}>
                 <Text style={styles.loginButtonText}>
                   {otpSent ? 'Resend OTP' : 'Send Email OTP'}
                 </Text>
               </TouchableOpacity>
 
               {otpSent && (
-                <View style={{marginTop: 10}}>
+                <View style={{ marginTop: 10 }}>
                   <TextInput
                     style={styles.input}
                     placeholder="Insert Email OTP"
@@ -315,15 +314,15 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
               {otpSent && (
                 <TouchableOpacity
                   onPress={verifyOtp}
-                  style={[styles.loginButton, {backgroundColor: '#4682b4'}]}>
+                  style={[styles.loginButton, { backgroundColor: '#4682b4' }]}>
                   <Text style={styles.loginButtonText}>Verify OTP</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
                 onPress={() => setShowModal(true)}
-                style={{marginLeft: 40, marginTop: 10}}>
-                <Text style={{color: '#007bff', fontFamily: AppFonts.Regular}}>
+                style={{ marginLeft: 40, marginTop: 10 }}>
+                <Text style={{ color: '#007bff', fontFamily: AppFonts.Regular }}>
                   Read Terms and Conditions
                 </Text>
               </TouchableOpacity>
@@ -337,12 +336,12 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
                 }}>
                 <TouchableOpacity
                   onPress={() => setAgreedToTerms(!agreedToTerms)}
-                  style={{flexDirection: 'row', alignItems: 'center'}}>
+                  style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Image
                     source={agreedToTerms ? tickImage : untickImage}
-                    style={{width: 24, height: 24, marginRight: 8}}
+                    style={{ width: 24, height: 24, marginRight: 8 }}
                   />
-                  <Text style={{color: '#000', fontFamily: AppFonts.Regular}}>
+                  <Text style={{ color: '#000', fontFamily: AppFonts.Regular }}>
                     I agree to the terms and condition
                   </Text>
                 </TouchableOpacity>
@@ -456,7 +455,7 @@ const ParentSignUpScreen = ({onLoginSuccess, setIsLogInScreen}) => {
                 <TouchableOpacity
                   onPress={() => setShowModal(false)}
                   style={styles.okButton}>
-                  <Text style={{color: '#fff'}}>OK</Text>
+                  <Text style={{ color: '#fff' }}>OK</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -502,7 +501,7 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     width: '100%',
-  
+
   },
   input: {
     height: 45,
